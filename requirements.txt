@@ -1,3 +1,5 @@
-python-dotenv
+pandas
+scikit-learn
+matplotlib
 pymongo[srv]
-pymongo
+python-dotenv
