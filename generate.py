@@ -247,7 +247,7 @@ if __name__ == "__main__":
   #plot_tsne_parameters(df_filtered, [20,30,40,50])
 
   print(f"{datetime.now().time()} applying DBSCAN...")
-  df_cluster = apply_clustering(df_tsne, 4, 10)
+  df_cluster = apply_clustering(df_tsne, 3.5, 10)
   #plot_cluster_parameters(df_tsne, [10,15,20], [3,3.5,4])
 
   print(f"{datetime.now().time()} create meta report...")
