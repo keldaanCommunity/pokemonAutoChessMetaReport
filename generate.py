@@ -57,6 +57,9 @@ with open(os.path.join(".", "json", "type_trigger.json"), "r") as f:
   d = json.load(f)
   TYPE_TRIGGER = d["TYPE_TRIGGER"]
 
+with open(os.path.join(".", "json", "item.json"), "r") as f:
+  ITEM = json.load(f)
+  
   # get list of type for each pokemon
 POKEMON_TYPE = {}
 for pkm in LIST_POKEMON:
@@ -79,6 +82,30 @@ def load_data_mongodb(time_limit):
   result = list(cursor)
   client.close()
   return result
+
+def create_item_data(json_data):
+    item_stats = {}
+    for item in ITEM:
+        item_stats[item] = {"pokemons": {}, "rank": 0, "count": 0, "name": item}
+
+    for match in json_data:
+        for pokemon in match["pokemons"]:
+            for item in pokemon["items"]:
+                item_stats[item]["count"] += 1
+                item_stats[item]["rank"] += match["rank"]
+                if(pokemon["name"] in item_stats[item]["pokemons"]):
+                    item_stats[item]["pokemons"][pokemon["name"]] += 1
+                
+                else:
+                    item_stats[item]["pokemons"][pokemon["name"]] = 1
+
+    for item in item_stats:
+        item_stats[item]["rank"] = round(item_stats[item]["rank"] / item_stats[item]["count"],2)
+        item_stats[item]["pokemons"] = dict(sorted(item_stats[item]["pokemons"].items(), key=lambda x:x[1], reverse=True))
+        item_stats[item]["pokemons"] = list(item_stats[item]["pokemons"])[:3]
+    
+    return item_stats.values()
+
 
 def create_dataframe(json_data):
   list_match = []
@@ -238,6 +265,10 @@ if __name__ == "__main__":
   time_limit = time_now - 15 * (24* 60 * 60 * 1000)
   json_data = load_data_mongodb(time_limit)
 
+  print(f"{datetime.now().time()} creating item data...")
+  items = create_item_data(json_data)
+  export_data_mongodb(items, "test", "items-statistic")
+
   print(f"{datetime.now().time()} creating dataframe...")
   df_match = create_dataframe(json_data)
 
@@ -256,3 +287,4 @@ if __name__ == "__main__":
 
   print(f"{datetime.now().time()} write output file...")
   export_data_mongodb(report, "test", "meta")
+
