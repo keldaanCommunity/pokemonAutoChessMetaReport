@@ -4,7 +4,7 @@
     "GRASS": [3, 5, 7],
     "FIRE": [2, 4, 6],
     "WATER": [3, 6, 9],
-    "ELECTRIC": [1],
+    "ELECTRIC": [2, 4, 6],
     "FIGHTING": [2, 4],
     "PSYCHIC": [2, 4, 6],
     "DARK": [2, 4, 6],
