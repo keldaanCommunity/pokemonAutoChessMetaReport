@@ -263,7 +263,9 @@ if __name__ == "__main__":
   print(f"{datetime.now().time()} load data from MongoDB")
   time_now = math.floor(datetime.now().timestamp() * 1000)
   time_limit = time_now - 15 * (24* 60 * 60 * 1000)
-  json_data = load_data_mongodb(time_limit)
+  lastRealease = math.floor(datetime(2022, 4, 29, 18, 0).timestamp() * 1000)
+  limit = max(lastRealease, time_limit)
+  json_data = load_data_mongodb(limit)
 
   print(f"{datetime.now().time()} creating item data...")
   items = create_item_data(json_data)
