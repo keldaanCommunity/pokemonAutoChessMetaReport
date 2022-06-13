@@ -2,7 +2,7 @@
   "TYPE_TRIGGER": {
     "NORMAL": [3, 6, 9],
     "GRASS": [3, 5, 7],
-    "FIRE": [2, 4, 6],
+    "FIRE": [2, 4, 6, 8],
     "WATER": [3, 6, 9],
     "ELECTRIC": [2, 4, 6],
     "FIGHTING": [2, 4],
