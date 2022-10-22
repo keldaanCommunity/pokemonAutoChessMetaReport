@@ -175,7 +175,9 @@
       "castform-rain",
       "corphish",
       "crawdaunt",
-      "relicanth"
+      "clamperl",
+      "huntail",
+      "gorebyss"
     ],
     "ELECTRIC": [
       "mareep",
@@ -275,7 +277,8 @@
       "fennekin",
       "braixen",
       "delphox",
-      "tapu-lele"
+      "tapu-lele",
+      "gorebyss"
     ],
     "DARK": [
       "seedot",
@@ -586,7 +589,8 @@
       "slowpoke",
       "slowbro",
       "slowking",
-      "primal-Kyogre"
+      "primal-Kyogre",
+      "huntail"
     ],
     "BUG": [
       "caterpie",
@@ -823,8 +827,10 @@
       "kabutops",
       "omanyte",
       "omastar",
-      "relicanth",
-      "diancie"
+      "diancie",
+      "clamperl",
+      "huntail",
+      "gorebyss"
     ],
     "SOUND": [
       "zubat",

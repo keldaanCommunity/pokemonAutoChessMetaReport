@@ -389,6 +389,9 @@
     "TAPU_LELE": "tapu-lele",
     "STAKATAKA": "stakataka",
     "BLACEPHALON": "blacephalon",
-    "DEFAULT": "default"
+    "DEFAULT": "default",
+    "CLAMPERL": "clamperl",
+    "HUNTAIL": "huntail",
+    "GOREBYSS": "gorebyss"
   }
 }
