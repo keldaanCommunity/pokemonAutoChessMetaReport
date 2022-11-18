@@ -420,6 +420,15 @@
     "TENTACOOL": "tentacool",
     "TENTACRUEL": "tentacruel",
     "SNUBULL": "snubull",
-    "GRANBULL": "granbull"
+    "GRANBULL": "granbull",
+    "SEVIPER": "seviper",
+    "VULPIX": "vulpix",
+    "NINETALES": "ninetales",
+    "ALOLAN_VULPIX": "alolan-vulpix",
+    "ALOLAN_NINETALES": "alolan-ninetales",
+    "BUIZEL": "buizel",
+    "FLOATZEL": "floatzel",
+    "MAWILE": "mawile",
+    "KECLEON": "kecleon"
   }
 }
