@@ -1,0 +1,5 @@
+name: pokemon-auto-chess-meta-report
+slug: pokemon_auto_chess_meta_report
+python:
+  entrypoint: generate.py
+timeout: 3600

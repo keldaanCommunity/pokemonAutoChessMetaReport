@@ -282,8 +282,7 @@ def plot_tsne_parameters(df, list_perplexity):
     sub_plt.scatter(df_tsne[0], df_tsne[1], color="black", alpha=.33)
   plt.show()
 
-if __name__ == "__main__":
-
+def main():
   print(f"{datetime.now().time()} load data from MongoDB")
   time_now = math.floor(datetime.now().timestamp() * 1000)
   time_limit = time_now - 15 * (24* 60 * 60 * 1000)
@@ -318,3 +317,5 @@ if __name__ == "__main__":
   print(f"{datetime.now().time()} write output file...")
   export_data_mongodb(report, "test", "meta")
 
+if __name__ == "__main__":
+    main()
