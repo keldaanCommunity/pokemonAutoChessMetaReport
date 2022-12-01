@@ -316,3 +316,6 @@ def main():
 
   print(f"{datetime.now().time()} write output file...")
   export_data_mongodb(report, "test", "meta")
+
+if __name__ == "__main__":
+    main()
