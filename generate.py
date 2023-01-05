@@ -350,5 +350,5 @@ def main():
     export_data_mongodb(report, "test", "meta")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#    main()
