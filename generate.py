@@ -252,7 +252,7 @@ def get_meta_report(df):
 
 
 def export_data_mongodb(list_data, db_name, collection_name):
-    uri = os.environ.get("MONGO_URI")
+    uri = os.getenv("MONGO_URI")
     client = MongoClient(uri)
     db = client[db_name]
     collection = db[collection_name]
@@ -350,5 +350,5 @@ def main():
     export_data_mongodb(report, "test", "meta")
 
 
-# if __name__ == "__main__":
-#    main()
+if __name__ == "__main__":
+    main()
