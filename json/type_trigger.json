@@ -5,7 +5,7 @@
     "FIRE": [2, 4, 6, 8],
     "WATER": [3, 6, 9],
     "ELECTRIC": [2, 4, 6],
-    "FIGHTING": [2, 4],
+    "FIGHTING": [2, 4, 6],
     "PSYCHIC": [2, 4, 6],
     "DARK": [2, 4, 6],
     "METAL": [2, 4],
@@ -24,6 +24,7 @@
     "FAIRY": [2, 4, 6],
     "ICE": [2, 4],
     "FOSSIL": [2, 4, 6],
-    "SOUND": [3, 5, 7]
+    "SOUND": [3, 5, 7],
+    "ARTIFICIAL": [2, 4, 6]
   }
 }
