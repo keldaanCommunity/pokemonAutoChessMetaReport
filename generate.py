@@ -54,14 +54,13 @@ LIST_POKEMON = [p for p in request_pokemons.json().values()]
 types_pokemons = requests.get('https://pokemon-auto-chess.com/types')
 TYPE_POKEMON = types_pokemons.json()
 
-with open(os.path.join(".", "json", "type_trigger.json"), "r") as f:
-    d = json.load(f)
-    TYPE_TRIGGER = d["TYPE_TRIGGER"]
+trigger = requests.get('https://pokemon-auto-chess.com/types-trigger')
+TYPE_TRIGGER = trigger.json()
 
-with open(os.path.join(".", "json", "item.json"), "r") as f:
-    ITEM = json.load(f)
+items = requests.get('https://pokemon-auto-chess.com/items')
+ITEM = items.json()
 
-    # get list of type for each pokemon
+# get list of type for each pokemon
 POKEMON_TYPE = {}
 for pkm in LIST_POKEMON:
     type_list = []
