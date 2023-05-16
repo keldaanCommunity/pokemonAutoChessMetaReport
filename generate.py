@@ -221,7 +221,7 @@ def get_meta_report(df):
         meta_report["count"] = n_row
         meta_report["ratio"] = round(size_ratio, 5)
         n_rank1 = df_sub_cluster[df_sub_cluster["rank"] == 1].shape[0]
-        winrate = 100 * n_rank1 / n_row_total
+        winrate = 100 * n_rank1 / n_row
         meta_report["winrate"] = round(winrate, 5)
         mean_rank = df_sub_cluster["rank"].mean()
         meta_report["mean_rank"] = round(mean_rank, 5)
