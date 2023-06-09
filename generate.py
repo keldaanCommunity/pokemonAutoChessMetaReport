@@ -89,7 +89,7 @@ def create_item_data(json_data):
     item_stats = {}
     for item in ITEM:
         item_stats[item] = {"pokemons": {},
-                            "rank": 0, "count": 0, "name": item}
+                            "rank": 0, "count": 1, "name": item}
 
     for match in json_data:
         for pokemon in match["pokemons"]:
