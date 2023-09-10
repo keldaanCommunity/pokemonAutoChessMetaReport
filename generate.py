@@ -94,7 +94,7 @@ def create_item_data(json_data):
     for match in json_data:
         for pokemon in match["pokemons"]:
             for item in pokemon["items"]:
-                if item != "KINGS_ROCK" and item != "WATER_INCENSE" and item != "BRIGHT_POWDER" and item != "ZOOM_LENS" and item != "FOCUS_BAND" and item != "ICY_ROCK":
+                if item != "KINGS_ROCK" and item != "WATER_INCENSE" and item != "BRIGHT_POWDER" and item != "ZOOM_LENS" and item != "FOCUS_BAND" and item != "ICY_ROCK" and item != "RUNE_PROTECT":
                     item_stats[item]["count"] += 1
                     item_stats[item]["rank"] += match["rank"]
                     if (pokemon["name"] in item_stats[item]["pokemons"]):
