@@ -9,6 +9,7 @@ import itertools as itools
 import matplotlib.pyplot as plt
 from datetime import datetime
 import requests
+import numpy as np
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from warnings import simplefilter
@@ -247,6 +248,8 @@ def get_meta_report(df):
             team_data["pokemons"] = list_pkmn[list_pkmn != 0].to_dict()
             list_team.append(team_data)
         meta_report["teams"] = list_team
+        meta_report["x"] = np.mean([k["x"] for k in list_team])
+        meta_report["y"] = np.mean([k["y"] for k in list_team])
         list_meta_report.append(meta_report)
     return list_meta_report
 
