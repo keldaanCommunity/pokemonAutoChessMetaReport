@@ -339,11 +339,11 @@ def main():
     print(f"{datetime.now().time()} applying t-SNE...")
     df_filtered = df_match[LIST_TYPE]
     df_tsne = apply_tsne(df_filtered, 20)
-    # plot_tsne_parameters(df_filtered, [20,30,40,50])
+    #plot_tsne_parameters(df_filtered, [20,30,40,50])
 
     print(f"{datetime.now().time()} applying DBSCAN...")
-    df_cluster = apply_clustering(df_tsne, 3.5, 10)
-    # plot_cluster_parameters(df_tsne, [10,15,20], [3,3.5,4])
+    df_cluster = apply_clustering(df_tsne, 3.5, 20)
+    #plot_cluster_parameters(df_tsne, [10,15,20], [3,3.5,4])
 
     print(f"{datetime.now().time()} create meta report...")
     df_concat = pd.concat([df_match, df_cluster], axis=1)
