@@ -94,15 +94,16 @@ def create_item_data(json_data):
 
     for match in json_data:
         for pokemon in match["pokemons"]:
-            for item in pokemon["items"]:
-                if item != "KINGS_ROCK" and item != "WATER_INCENSE" and item != "BRIGHT_POWDER" and item != "ZOOM_LENS" and item != "FOCUS_BAND" and item != "ICY_ROCK" and item != "RUNE_PROTECT":
-                    item_stats[item]["count"] += 1
-                    item_stats[item]["rank"] += match["rank"]
-                    if (pokemon["name"] in item_stats[item]["pokemons"]):
-                        item_stats[item]["pokemons"][pokemon["name"]] += 1
+            if pokemon != "SHEDNINJA":
+                for item in pokemon["items"]:
+                    if item != "ORAN_BERRY" and item != "WATER_INCENSE" and item != "BRIGHT_POWDER" and item != "ZOOM_LENS" and item != "FOCUS_BAND" and item != "ICY_ROCK" and item != "RUNE_PROTECT":
+                        item_stats[item]["count"] += 1
+                        item_stats[item]["rank"] += match["rank"]
+                        if (pokemon["name"] in item_stats[item]["pokemons"]):
+                            item_stats[item]["pokemons"][pokemon["name"]] += 1
 
-                    else:
-                        item_stats[item]["pokemons"][pokemon["name"]] = 1
+                        else:
+                            item_stats[item]["pokemons"][pokemon["name"]] = 1
 
     for item in item_stats:
         item_stats[item]["rank"] = round(
@@ -122,13 +123,14 @@ def create_pokemon_data(json_data):
 
     for match in json_data:
         for pokemon in match["pokemons"]:
-            pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
-            pokemon_stats[pokemon["name"]]["count"] += 1
-            for item in pokemon["items"]:
-                if (item in pokemon_stats[pokemon["name"]]["items"]):
-                    pokemon_stats[pokemon["name"]]["items"][item] += 1
-                else:
-                    pokemon_stats[pokemon["name"]]["items"][item] = 1
+            if pokemon["name"] != "SHEDNINJA":
+                pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
+                pokemon_stats[pokemon["name"]]["count"] += 1
+                for item in pokemon["items"]:
+                    if (item in pokemon_stats[pokemon["name"]]["items"]):
+                        pokemon_stats[pokemon["name"]]["items"][item] += 1
+                    else:
+                        pokemon_stats[pokemon["name"]]["items"][item] = 1
 
     for pokemon in pokemon_stats:
         if (pokemon_stats[pokemon]["count"] == 0):
@@ -155,17 +157,18 @@ def create_dataframe(json_data):
         for j in range(len(pokemons)):
             pkm_name = pokemons[j]["name"]
             # increase number of pkm
-            if (pkm_name in match):
-                match[pkm_name] += 1
-            else:
-                match[pkm_name] = 1
-                # increase number of pkm types
-                pkm_types = POKEMON_TYPE[pkm_name]
-                for type_name in pkm_types:
-                    if (type_name in match):
-                        match[type_name] += 1
-                    else:
-                        match[type_name] = 1
+            if (pkm_name != "SHEDNINJA"):
+                if (pkm_name in match):
+                    match[pkm_name] += 1
+                else:
+                    match[pkm_name] = 1
+                    # increase number of pkm types
+                    pkm_types = POKEMON_TYPE[pkm_name]
+                    for type_name in pkm_types:
+                        if (type_name in match):
+                            match[type_name] += 1
+                        else:
+                            match[type_name] = 1
         list_match.append(match)
 
     dataframe = pd.DataFrame(list_match)
