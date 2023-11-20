@@ -3,6 +3,6 @@ slug: pokemon_auto_chess_meta_report
 python:
   entrypoint: generate.py
   envVars:
-    MY_CONFIG:
+    MONGO_URI:
       config: MONGO_URI
 timeout: 3600
