@@ -119,12 +119,13 @@ def create_pokemon_data(json_data):
     pokemon_stats = {}
     for pokemon in LIST_POKEMON:
         pokemon_stats[pokemon] = {"items": {},
-                                  "rank": 0, "count": 0, "name": pokemon}
+                                  "rank": 0, "count": 0, "name": pokemon, "item_count": 0}
 
     for match in json_data:
         for pokemon in match["pokemons"]:
             if pokemon["name"] != "SHEDNINJA":
                 pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
+                pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
                 pokemon_stats[pokemon["name"]]["count"] += 1
                 for item in pokemon["items"]:
                     if (item in pokemon_stats[pokemon["name"]]["items"]):
@@ -138,6 +139,8 @@ def create_pokemon_data(json_data):
         else:
             pokemon_stats[pokemon]["rank"] = round(
                 pokemon_stats[pokemon]["rank"] / pokemon_stats[pokemon]["count"], 2)
+            pokemon_stats[pokemon]["item_count"] = round(
+                pokemon_stats[pokemon]["item_count"] / pokemon_stats[pokemon]["count"], 2)
         pokemon_stats[pokemon]["items"] = dict(sorted(
             pokemon_stats[pokemon]["items"].items(), key=lambda x: x[1], reverse=True))
         pokemon_stats[pokemon]["items"] = list(
