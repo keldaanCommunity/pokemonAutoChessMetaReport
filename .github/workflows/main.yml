@@ -26,5 +26,5 @@ jobs:
 
       - name: execute py script # run generate.py
         env:
-          SOME_SECRET: ${{ secrets.MONGOO_URI }}
+          MONGOO_URI: ${{ secrets.MONGOO_URI }}
         run: python generate.py
