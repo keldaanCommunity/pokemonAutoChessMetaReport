@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repo content
-        uses: actions/checkout@v2 # checkout the repository content to github runner
+        uses: actions/checkout@v4 # checkout the repository content to github runner
 
       - name: setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.9" # install the python version needed
 
@@ -26,5 +26,5 @@ jobs:
 
       - name: execute py script # run generate.py
         env:
-          MONGO_URI: ${{ env.MONGO_URI }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: python generate.py
