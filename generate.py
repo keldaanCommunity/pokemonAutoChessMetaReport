@@ -379,9 +379,9 @@ def main():
     pokemons = create_pokemon_data(json_data)
     export_data_mongodb(pokemons, "test", "pokemons-statistic")
 
-    print(f"{datetime.now().time()} creating pokemon data...")
-    pokemons = create_pokemon_data_elo_threshold(json_data)
-    export_data_mongodb(pokemons, "test", "pokemons-statistic-v2")
+    #print(f"{datetime.now().time()} creating pokemon data with threshold...")
+    #pokemons = create_pokemon_data_elo_threshold(json_data)
+    #export_data_mongodb(pokemons, "test", "pokemons-statistic-v2")
 
     print(f"{datetime.now().time()} creating dataframe...")
     df_match = create_dataframe(json_data)
