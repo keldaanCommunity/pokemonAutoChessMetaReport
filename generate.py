@@ -165,15 +165,14 @@ def create_pokemon_data_elo_threshold(json_data):
 
         filtered_json_data = [m for m in json_data if m["elo"] >= elo_threshold]
         for match in filtered_json_data:
-            if pokemon["elo"] >= elo_threshold:
-                pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
-                pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
-                pokemon_stats[pokemon["name"]]["count"] += 1
-                for item in pokemon["items"]:
-                    if (item in pokemon_stats[pokemon["name"]]["items"]):
-                        pokemon_stats[pokemon["name"]]["items"][item] += 1
-                    else:
-                        pokemon_stats[pokemon["name"]]["items"][item] = 1
+            pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
+            pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
+            pokemon_stats[pokemon["name"]]["count"] += 1
+            for item in pokemon["items"]:
+                if (item in pokemon_stats[pokemon["name"]]["items"]):
+                    pokemon_stats[pokemon["name"]]["items"][item] += 1
+                else:
+                    pokemon_stats[pokemon["name"]]["items"][item] = 1
 
         for pokemon in pokemon_stats:
             if (pokemon_stats[pokemon]["count"] == 0):
