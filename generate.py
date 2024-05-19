@@ -163,17 +163,17 @@ def create_pokemon_data_elo_threshold(json_data):
         for pokemon in LIST_POKEMON:
             pokemon_stats[pokemon] = {"items": {}, "rank": 0, "count": 0, "name": pokemon, "item_count": 0}
 
-        for match in json_data:
-            for pokemon in match["pokemons"]:
-                if pokemon["elo"] >= elo_threshold:
-                    pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
-                    pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
-                    pokemon_stats[pokemon["name"]]["count"] += 1
-                    for item in pokemon["items"]:
-                        if (item in pokemon_stats[pokemon["name"]]["items"]):
-                            pokemon_stats[pokemon["name"]]["items"][item] += 1
-                        else:
-                            pokemon_stats[pokemon["name"]]["items"][item] = 1
+        filtered_json_data = [m for m in json_data if m["elo"] >= elo_threshold]
+        for match in filtered_json_data:
+            if pokemon["elo"] >= elo_threshold:
+                pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
+                pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
+                pokemon_stats[pokemon["name"]]["count"] += 1
+                for item in pokemon["items"]:
+                    if (item in pokemon_stats[pokemon["name"]]["items"]):
+                        pokemon_stats[pokemon["name"]]["items"][item] += 1
+                    else:
+                        pokemon_stats[pokemon["name"]]["items"][item] = 1
 
         for pokemon in pokemon_stats:
             if (pokemon_stats[pokemon]["count"] == 0):
@@ -369,10 +369,8 @@ def plot_tsne_parameters(df, list_perplexity):
 def main():
     print(f"{datetime.now().time()} load data from MongoDB")
     time_now = math.floor(datetime.now().timestamp() * 1000)
-    time_limit = time_now - 15 * (24 * 60 * 60 * 1000)
-    lastRealease = math.floor(datetime(2022, 7, 7, 12, 0).timestamp() * 1000)
-    limit = max(lastRealease, time_limit)
-    json_data = load_data_mongodb(limit)
+    time_limit = time_now - 30 * (24 * 60 * 60 * 1000)
+    json_data = load_data_mongodb(time_limit)
 
     print(f"{datetime.now().time()} creating item data...")
     items = create_item_data(json_data)
