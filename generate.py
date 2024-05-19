@@ -97,7 +97,7 @@ def create_item_data(json_data):
                 for item in pokemon["items"]:
                     if item != "ORAN_BERRY" and item != "WATER_INCENSE" and item != "BRIGHT_POWDER" and item != "ZOOM_LENS" and item != "FOCUS_BAND" and item != "ICY_ROCK" and item != "RUNE_PROTECT":
                         item_stats[item]["count"] += 1
-                        item_stats[item]["rank"] += match["rank"]
+                        item_stats[item]["rank"] += match["rank"] * 8 / match["nbplayers"]
                         if (pokemon["name"] in item_stats[item]["pokemons"]):
                             item_stats[item]["pokemons"][pokemon["name"]] += 1
 
@@ -123,7 +123,7 @@ def create_pokemon_data(json_data):
     for match in json_data:
         for pokemon in match["pokemons"]:
             if pokemon["name"] != "SHEDNINJA":
-                pokemon_stats[pokemon["name"]]["rank"] += match["rank"]
+                pokemon_stats[pokemon["name"]]["rank"] += match["rank"] * 8 / match["nbplayers"]
                 pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
                 pokemon_stats[pokemon["name"]]["count"] += 1
                 for item in pokemon["items"]:
@@ -154,6 +154,7 @@ def create_dataframe(json_data):
         data = json_data[i]
         match = {}
         match["rank"] = data["rank"]
+        match["nbplayers"] = data["nbplayers"] or 8 # nbplayers has been added later so need fallback value
         # for each pkm in the team
         pokemons = data["pokemons"]
         for j in range(len(pokemons)):
