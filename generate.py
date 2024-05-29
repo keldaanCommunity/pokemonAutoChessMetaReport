@@ -79,7 +79,7 @@ def load_data_mongodb(time_limit):
     client = MongoClient(uri)
     db = client.test
     collection = db['detailledstatisticv2']
-    cursor = collection.find({"time": {"$gt": time_limit}}, limit=50000)
+    cursor = collection.find({"time": {"$gt": time_limit}})
     result = list(cursor)
     client.close()
     return result
