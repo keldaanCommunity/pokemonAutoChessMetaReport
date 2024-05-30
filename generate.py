@@ -413,7 +413,7 @@ def main():
 
     print(f"{datetime.now().time()} create meta report...")
     df_concat = pd.concat([df_match, df_cluster], axis=1)
-    #report = get_meta_report(df_concat)
+    report = get_meta_report(df_concat)
 
     print(f"{datetime.now().time()} write output file...")
     export_data_mongodb(report, "test", "meta")
