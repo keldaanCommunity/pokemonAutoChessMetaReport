@@ -404,16 +404,16 @@ def main():
 
     print(f"{datetime.now().time()} applying t-SNE...")
     df_filtered = df_match[LIST_TYPE]
-    df_tsne = apply_tsne(df_filtered, 20)
-    #plot_tsne_parameters(df_filtered, [20,30,40,50])
+    df_tsne = apply_tsne(df_filtered, 50)
+    #plot_tsne_parameters(df_filtered, [20,50])
 
     print(f"{datetime.now().time()} applying DBSCAN...")
-    df_cluster = apply_clustering(df_tsne, 3.5, 20)
-    #plot_cluster_parameters(df_tsne, [10,15,20], [3,3.5,4])
+    df_cluster = apply_clustering(df_tsne, 2, 30)
+    #plot_cluster_parameters(df_tsne, [10,20,30,40,50,100], [1,2,3,4,5,6,7])
 
     print(f"{datetime.now().time()} create meta report...")
     df_concat = pd.concat([df_match, df_cluster], axis=1)
-    report = get_meta_report(df_concat)
+    #report = get_meta_report(df_concat)
 
     print(f"{datetime.now().time()} write output file...")
     export_data_mongodb(report, "test", "meta")
