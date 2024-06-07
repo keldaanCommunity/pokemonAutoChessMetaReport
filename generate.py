@@ -384,7 +384,7 @@ def plot_tsne_parameters(df, list_perplexity):
 def main():
     print(f"{datetime.now().time()} load data from MongoDB")
     time_now = math.floor(datetime.now().timestamp() * 1000)
-    time_limit = time_now - 30 * (24 * 60 * 60 * 1000)
+    time_limit = time_now - 15 * (24 * 60 * 60 * 1000)
     json_data = load_data_mongodb(time_limit)
 
     print(f"{datetime.now().time()} creating item data...")
