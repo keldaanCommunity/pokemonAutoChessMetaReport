@@ -95,7 +95,7 @@ def create_item_data(json_data):
         nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
         for pokemon in match["pokemons"]:
             for item in pokemon["items"]:
-                if item != "DELTA_ORB" and item != "LEFTOVERS" and item != "ORAN_BERRY" and item != "SOOTHE_BELL":
+                if item != "DELTA_ORB" and item != "LEFTOVERS" and item != "ORAN_BERRY" and item != "SOOTHE_BELL" and item != "FIRE_GEM":
                     item_stats[item]["count"] += 1
                     item_stats[item]["rank"] += match["rank"] * 8 / nbPlayers
                     if (pokemon["name"] in item_stats[item]["pokemons"]):
