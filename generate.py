@@ -391,32 +391,32 @@ def main():
     items = create_item_data(json_data)
     export_data_mongodb(items, "test", "items-statistic")
 
-    print(f"{datetime.now().time()} creating pokemon data...")
-    pokemons = create_pokemon_data(json_data)
-    export_data_mongodb(pokemons, "test", "pokemons-statistic")
+    #print(f"{datetime.now().time()} creating pokemon data...")
+    #pokemons = create_pokemon_data(json_data)
+    #export_data_mongodb(pokemons, "test", "pokemons-statistic")
 
     print(f"{datetime.now().time()} creating pokemon data with threshold...")
     pokemons = create_pokemon_data_elo_threshold(json_data)
     export_data_mongodb(pokemons, "test", "pokemons-statistic-v2")
 
-    print(f"{datetime.now().time()} creating dataframe...")
-    df_match = create_dataframe(json_data)
+    #print(f"{datetime.now().time()} creating dataframe...")
+    #df_match = create_dataframe(json_data)
 
-    print(f"{datetime.now().time()} applying t-SNE...")
-    df_filtered = df_match[LIST_TYPE]
-    df_tsne = apply_tsne(df_filtered, 50)
+    #print(f"{datetime.now().time()} applying t-SNE...")
+    #df_filtered = df_match[LIST_TYPE]
+    #df_tsne = apply_tsne(df_filtered, 50)
     #plot_tsne_parameters(df_filtered, [20,50])
 
-    print(f"{datetime.now().time()} applying DBSCAN...")
-    df_cluster = apply_clustering(df_tsne, 2, 30)
+    #print(f"{datetime.now().time()} applying DBSCAN...")
+    #df_cluster = apply_clustering(df_tsne, 2, 30)
     #plot_cluster_parameters(df_tsne, [10,20,30,40,50,100], [1,2,3,4,5,6,7])
 
-    print(f"{datetime.now().time()} create meta report...")
-    df_concat = pd.concat([df_match, df_cluster], axis=1)
-    report = get_meta_report(df_concat)
+    #print(f"{datetime.now().time()} create meta report...")
+    #df_concat = pd.concat([df_match, df_cluster], axis=1)
+    #report = get_meta_report(df_concat)
 
-    print(f"{datetime.now().time()} write output file...")
-    export_data_mongodb(report, "test", "meta")
+    #print(f"{datetime.now().time()} write output file...")
+    #export_data_mongodb(report, "test", "meta")
 
 
 if __name__ == "__main__":
