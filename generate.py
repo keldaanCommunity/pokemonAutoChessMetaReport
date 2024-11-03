@@ -122,7 +122,10 @@ def create_pokemon_data(json_data):
 
     for match in json_data:
         nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
-        for pokemon in match["pokemons"]:
+        for pkm in match["pokemons"]:
+            pokemon = pkm
+            if("SILVALLY" in pokemon["name"]):
+                pokemon = "SILVALLY"
             pokemon_stats[pokemon["name"]]["rank"] += match["rank"] * 8 / nbPlayers
             pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
             pokemon_stats[pokemon["name"]]["count"] += 1
