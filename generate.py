@@ -98,11 +98,14 @@ def create_item_data(json_data):
                 if item != "DELTA_ORB" and item != "LEFTOVERS" and item != "ORAN_BERRY" and item != "SOOTHE_BELL" and item != "FIRE_GEM":
                     item_stats[item]["count"] += 1
                     item_stats[item]["rank"] += match["rank"] * 8 / nbPlayers
-                    if (pokemon["name"] in item_stats[item]["pokemons"]):
-                        item_stats[item]["pokemons"][pokemon["name"]] += 1
+                    name = pokemon["name"]
+                    if "SILVALLY" in name:
+                        name = "SILVALLY"
+                    if (name in item_stats[item]["pokemons"]):
+                        item_stats[item]["pokemons"][name] += 1
 
                     else:
-                        item_stats[item]["pokemons"][pokemon["name"]] = 1
+                        item_stats[item]["pokemons"][name] = 1
 
     for item in item_stats:
         item_stats[item]["rank"] = round(
@@ -122,18 +125,18 @@ def create_pokemon_data(json_data):
 
     for match in json_data:
         nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
-        for pkm in match["pokemons"]:
-            pokemon = pkm
-            if("SILVALLY" in pokemon["name"]):
-                pokemon = "SILVALLY"
-            pokemon_stats[pokemon["name"]]["rank"] += match["rank"] * 8 / nbPlayers
-            pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
-            pokemon_stats[pokemon["name"]]["count"] += 1
+        for pokemon in match["pokemons"]:
+            name = pokemon["name"]
+            if "SILVALLY" in name:
+                name = "SILVALLY"
+            pokemon_stats[name]["rank"] += match["rank"] * 8 / nbPlayers
+            pokemon_stats[name]["item_count"] += len(pokemon["items"])
+            pokemon_stats[name]["count"] += 1
             for item in pokemon["items"]:
-                if (item in pokemon_stats[pokemon["name"]]["items"]):
-                    pokemon_stats[pokemon["name"]]["items"][item] += 1
+                if (item in pokemon_stats[name]["items"]):
+                    pokemon_stats[name]["items"][item] += 1
                 else:
-                    pokemon_stats[pokemon["name"]]["items"][item] = 1
+                    pokemon_stats[name]["items"][item] = 1
 
     for pokemon in pokemon_stats:
         if (pokemon_stats[pokemon]["count"] == 0):
@@ -184,18 +187,18 @@ def create_pokemon_data_elo_threshold(json_data):
         for match in json_data:
             nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
             if match["elo"] >= elo_threshold:  
-                for pkm in match["pokemons"]:
-                    pokemon = pkm
-                    if("SILVALLY" in pokemon["name"]):
-                        pokemon = "SILVALLY"
-                    pokemon_stats[pokemon["name"]]["rank"] += match["rank"] * 8 / nbPlayers
-                    pokemon_stats[pokemon["name"]]["item_count"] += len(pokemon["items"])
-                    pokemon_stats[pokemon["name"]]["count"] += 1
+                for pokemon in match["pokemons"]:
+                    name = pokemon["name"]
+                    if "SILVALLY" in name:
+                        name = "SILVALLY"
+                    pokemon_stats[name]["rank"] += match["rank"] * 8 / nbPlayers
+                    pokemon_stats[name]["item_count"] += len(pokemon["items"])
+                    pokemon_stats[name]["count"] += 1
                     for item in pokemon["items"]:
-                        if (item in pokemon_stats[pokemon["name"]]["items"]):
-                            pokemon_stats[pokemon["name"]]["items"][item] += 1
+                        if (item in pokemon_stats[name]["items"]):
+                            pokemon_stats[name]["items"][item] += 1
                         else:
-                            pokemon_stats[pokemon["name"]]["items"][item] = 1
+                            pokemon_stats[name]["items"][item] = 1
 
         for pokemon in pokemon_stats:
             if (pokemon_stats[pokemon]["count"] == 0):
