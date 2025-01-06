@@ -155,30 +155,54 @@ def create_pokemon_data(json_data):
 
 def create_pokemon_data_elo_threshold(json_data):
     elo_threshold_stats = {
-        "BEGINNER": {
-            "tier": "BEGINNER",
+        "LEVEL_BALL": {
+            "tier": "LEVEL_BALL",
             "pokemons": {}
         },
-        "POKEBALL": {
-            "tier": "POKEBALL",
+        "NET_BALL": {
+            "tier": "NET_BALL",
             "pokemons": {}
         },
-        "GREATBALL": {
-            "tier": "GREATBALL",
+        "SAFARI_BALL": {
+            "tier": "SAFARI_BALL",
             "pokemons": {}
         },
-        "ULTRABALL": {
-            "tier": "ULTRABALL",
+        "LOVE_BALL": {
+            "tier": "LOVE_BALL",
             "pokemons": {}
         },
-        "MASTERBALL": {
-            "tier": "MASTERBALL",
+        "PREMIER_BALL": {
+            "tier": "PREMIER_BALL",
             "pokemons": {}
-        } 
+        },
+        "QUICK_BALL": {
+            "tier": "QUICK_BALL",
+            "pokemons": {}
+        },
+        "POKE_BALL": {
+            "tier": "POKE_BALL",
+            "pokemons": {}
+        },
+        "SUPER_BALL": {
+            "tier": "SUPER_BALL",
+            "pokemons": {}
+        },
+        "ULTRA_BALL": {
+            "tier": "ULTRA_BALL",
+            "pokemons": {}
+        },
+        "MASTER_BALL": {
+            "tier": "MASTER_BALL",
+            "pokemons": {}
+        },
+        "BEAST_BALL": {
+            "tier": "BEAST_BALL",
+            "pokemons": {}
+        }  
     }
 
-    for threshold in ["BEGINNER", "POKEBALL", "GREATBALL", "ULTRABALL", "MASTERBALL"]:
-        elo_threshold =  1400 if threshold == "MASTERBALL" else 1250 if threshold == "ULTRABALL" else 1100 if threshold == "GREATBALL" else 900 if threshold == "POKEBALL" else 0
+    for threshold in ["LEVEL_BALL", "NET_BALL", "SAFARI_BALL", "LOVE_BALL", "PREMIER_BALL", "QUICK_BALL", "POKE_BALL", "SUPER_BALL", "ULTRA_BALL", "MASTER_BALL", "BEAST_BALL"]:
+        elo_threshold =  1700 if threshold == "BEAST_BALL" else 1500 if threshold == "MASTER_BALL" else 1400 if threshold == "ULTRA_BALL" else 1350 if threshold == "SUPER_BALL" else 1300 if threshold == "POKE_BALL" else 1250 if threshold == "QUICK_BALL" else 1200 if threshold == "PREMIER_BALL" else 1150 if threshold == "LOVE_BALL" else 1100 if threshold == "SAFARI_BALL" else 1050 if threshold == "NET_BALL" else 0
         pokemon_stats = {}
         for pokemon in LIST_POKEMON:
             pokemon_stats[pokemon] = {"items": {},
