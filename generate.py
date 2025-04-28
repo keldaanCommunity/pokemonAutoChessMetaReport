@@ -98,8 +98,6 @@ def create_item_data(json_data):
                 item_stats[item]["count"] += 1
                 item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                 name = pokemon["name"]
-                if name == "CHERRUBI":
-                    name = "CHERUBI"
                 if (name in item_stats[item]["pokemons"]):
                     item_stats[item]["pokemons"][name] += 1
                 else:
@@ -114,6 +112,79 @@ def create_item_data(json_data):
 
     return item_stats.values()
 
+def create_item_data_elo_threshold(json_data):
+    elo_threshold_stats = {
+        "LEVEL_BALL": {
+            "tier": "LEVEL_BALL",
+            "items": {}
+        },
+        "NET_BALL": {
+            "tier": "NET_BALL",
+            "items": {}
+        },
+        "SAFARI_BALL": {
+            "tier": "SAFARI_BALL",
+            "items": {}
+        },
+        "LOVE_BALL": {
+            "tier": "LOVE_BALL",
+            "items": {}
+        },
+        "PREMIER_BALL": {
+            "tier": "PREMIER_BALL",
+            "items": {}
+        },
+        "QUICK_BALL": {
+            "tier": "QUICK_BALL",
+            "items": {}
+        },
+        "POKE_BALL": {
+            "tier": "POKE_BALL",
+            "items": {}
+        },
+        "SUPER_BALL": {
+            "tier": "SUPER_BALL",
+            "items": {}
+        },
+        "ULTRA_BALL": {
+            "tier": "ULTRA_BALL",
+            "items": {}
+        },
+        "MASTER_BALL": {
+            "tier": "MASTER_BALL",
+            "items": {}
+        },
+        "BEAST_BALL": {
+            "tier": "BEAST_BALL",
+            "items": {}
+        }  
+    }
+    for threshold in ["LEVEL_BALL", "NET_BALL", "SAFARI_BALL", "LOVE_BALL", "PREMIER_BALL", "QUICK_BALL", "POKE_BALL", "SUPER_BALL", "ULTRA_BALL", "MASTER_BALL", "BEAST_BALL"]:
+        elo_threshold =  1700 if threshold == "BEAST_BALL" else 1500 if threshold == "MASTER_BALL" else 1400 if threshold == "ULTRA_BALL" else 1350 if threshold == "SUPER_BALL" else 1300 if threshold == "POKE_BALL" else 1250 if threshold == "QUICK_BALL" else 1200 if threshold == "PREMIER_BALL" else 1150 if threshold == "LOVE_BALL" else 1100 if threshold == "SAFARI_BALL" else 1050 if threshold == "NET_BALL" else 0
+        item_stats = {}
+        for item in ITEM:
+            item_stats[item] = {"pokemons": {}, "rank": 0, "count": 1, "name": item}
+        for match in json_data:
+            nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
+            if match["elo"] >= elo_threshold:
+                for pokemon in match["pokemons"]:
+                    for item in pokemon["items"]:
+                        item_stats[item]["count"] += 1
+                        item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+                        name = pokemon["name"]
+                        if (name in item_stats[item]["pokemons"]):
+                            item_stats[item]["pokemons"][name] += 1
+                        else:
+                            item_stats[item]["pokemons"][name] = 1
+
+        for item in item_stats:
+            item_stats[item]["rank"] = round(
+                item_stats[item]["rank"] / item_stats[item]["count"], 2)
+            item_stats[item]["pokemons"] = dict(
+                sorted(item_stats[item]["pokemons"].items(), key=lambda x: x[1], reverse=True))
+            item_stats[item]["pokemons"] = list(item_stats[item]["pokemons"])[:3]
+        elo_threshold_stats[threshold]["items"] = item_stats
+    return elo_threshold_stats.values()
 
 def create_pokemon_data(json_data):
     pokemon_stats = {}
@@ -125,8 +196,6 @@ def create_pokemon_data(json_data):
         nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
         for pokemon in match["pokemons"]:
             name = pokemon["name"]
-            if name == "CHERRUBI":
-                name = "CHERUBI"
             pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
             pokemon_stats[name]["item_count"] += len(pokemon["items"])
             pokemon_stats[name]["count"] += 1
@@ -211,8 +280,6 @@ def create_pokemon_data_elo_threshold(json_data):
             if match["elo"] >= elo_threshold:  
                 for pokemon in match["pokemons"]:
                     name = pokemon["name"]
-                    if name == "CHERRUBI":
-                        name = "CHERUBI"
                     pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                     pokemon_stats[name]["item_count"] += len(pokemon["items"])
                     pokemon_stats[name]["count"] += 1
@@ -411,16 +478,30 @@ def plot_tsne_parameters(df, list_perplexity):
         sub_plt.scatter(df_tsne[0], df_tsne[1], color="black", alpha=.33)
     plt.show()
 
+def create_metadata(json_data, time_limit):
+    metadata = {}
+    metadata["created_at"] = datetime.now().isoformat()
+    metadata["count"] = len(json_data)
+    metadata["time_limit"] = datetime.fromtimestamp(time_limit / 1000).isoformat()
+    return [metadata]
 
 def main():
     print(f"{datetime.now().time()} load data from MongoDB")
     time_now = math.floor(datetime.now().timestamp() * 1000)
-    time_limit = time_now - 15 * (24 * 60 * 60 * 1000)
+    time_limit = time_now - 15 * (24 * 60 * 60 * 1000) # 15 days  15 * (24 * 60 * 60 * 1000)
     json_data = load_data_mongodb(time_limit)
+
+    print(f"{datetime.now().time()} creating metadata...")
+    metadata = create_metadata(json_data, time_limit)
+    export_data_mongodb(metadata, "test", "metadata")
 
     print(f"{datetime.now().time()} creating item data...")
     items = create_item_data(json_data)
     export_data_mongodb(items, "test", "items-statistic")
+
+    print(f"{datetime.now().time()} creating item data with threshold...")
+    items = create_item_data_elo_threshold(json_data)
+    export_data_mongodb(items, "test", "items-statistic-v2")
 
     #print(f"{datetime.now().time()} creating pokemon data...")
     #pokemons = create_pokemon_data(json_data)
