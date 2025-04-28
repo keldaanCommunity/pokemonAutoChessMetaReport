@@ -96,7 +96,7 @@ def create_item_data(json_data):
         for pokemon in match["pokemons"]:
             for item in pokemon["items"]:
                 item_stats[item]["count"] += 1
-                item_stats[item]["rank"] += match["rank"] * 8 / nbPlayers
+                item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                 name = pokemon["name"]
                 if name == "CHERRUBI":
                     name = "CHERUBI"
@@ -127,7 +127,7 @@ def create_pokemon_data(json_data):
             name = pokemon["name"]
             if name == "CHERRUBI":
                 name = "CHERUBI"
-            pokemon_stats[name]["rank"] += match["rank"] * 8 / nbPlayers
+            pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
             pokemon_stats[name]["item_count"] += len(pokemon["items"])
             pokemon_stats[name]["count"] += 1
             for item in pokemon["items"]:
@@ -213,7 +213,7 @@ def create_pokemon_data_elo_threshold(json_data):
                     name = pokemon["name"]
                     if name == "CHERRUBI":
                         name = "CHERUBI"
-                    pokemon_stats[name]["rank"] += match["rank"] * 8 / nbPlayers
+                    pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                     pokemon_stats[name]["item_count"] += len(pokemon["items"])
                     pokemon_stats[name]["count"] += 1
                     for item in pokemon["items"]:
