@@ -169,13 +169,14 @@ def create_item_data_elo_threshold(json_data):
             if match["elo"] >= elo_threshold:
                 for pokemon in match["pokemons"]:
                     for item in pokemon["items"]:
-                        item_stats[item]["count"] += 1
-                        item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
-                        name = pokemon["name"]
-                        if (name in item_stats[item]["pokemons"]):
-                            item_stats[item]["pokemons"][name] += 1
-                        else:
-                            item_stats[item]["pokemons"][name] = 1
+                        if item != "DEFENSIVE_RIBBON":  # Exclude DEFENSIVE_RIBBON
+                            item_stats[item]["count"] += 1
+                            item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+                            name = pokemon["name"]
+                            if (name in item_stats[item]["pokemons"]):
+                                item_stats[item]["pokemons"][name] += 1
+                            else:
+                                item_stats[item]["pokemons"][name] = 1
 
         for item in item_stats:
             item_stats[item]["rank"] = round(
@@ -495,9 +496,9 @@ def main():
     metadata = create_metadata(json_data, time_limit)
     export_data_mongodb(metadata, "test", "metadata")
 
-    print(f"{datetime.now().time()} creating item data...")
-    items = create_item_data(json_data)
-    export_data_mongodb(items, "test", "items-statistic")
+    # print(f"{datetime.now().time()} creating item data...")
+    # items = create_item_data(json_data)
+    # export_data_mongodb(items, "test", "items-statistic")
 
     print(f"{datetime.now().time()} creating item data with threshold...")
     items = create_item_data_elo_threshold(json_data)
