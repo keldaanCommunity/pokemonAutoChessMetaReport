@@ -169,7 +169,8 @@ def create_item_data_elo_threshold(json_data):
             if match["elo"] >= elo_threshold:
                 for pokemon in match["pokemons"]:
                     for item in pokemon["items"]:
-                        if item != "DEFENSIVE_RIBBON":  # Exclude DEFENSIVE_RIBBON
+                        # Exclude legacy items
+                        if item not in ["DEFENSIVE_RIBBON", "SWIFT_WING", "MANA_SCARF", "CLEANSE_TAG"]:
                             item_stats[item]["count"] += 1
                             item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                             name = pokemon["name"]
