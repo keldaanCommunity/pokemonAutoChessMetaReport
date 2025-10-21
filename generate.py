@@ -282,6 +282,10 @@ def create_pokemon_data_elo_threshold(json_data):
             if match["elo"] >= elo_threshold:  
                 for pokemon in match["pokemons"]:
                     name = pokemon["name"]
+                    if pokemon["name"] == "DEERLING":
+                        name = "DEERLING_AUTUMN"
+                    if pokemon["name"] == "SAWSBUCK":
+                        name = "SAWSBUCK_AUTUMN" 
                     pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                     pokemon_stats[name]["item_count"] += len(pokemon["items"])
                     pokemon_stats[name]["count"] += 1
