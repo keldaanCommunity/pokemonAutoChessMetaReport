@@ -170,7 +170,7 @@ def create_item_data_elo_threshold(json_data):
                 for pokemon in match["pokemons"]:
                     for item in pokemon["items"]:
                         # Exclude legacy items
-                        if item not in ["DEFENSIVE_RIBBON", "SWIFT_WING", "MANA_SCARF", "CLEANSE_TAG", "BIG_NUGGET"]:
+                        if item not in ["CHOICE_SCARF", "LUCKY_EGG", "ROTOM_PHONE", "FLUFFY_TAIL", "TOXIC_ORB"]:
                             item_stats[item]["count"] += 1
                             item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
                             name = pokemon["name"]
