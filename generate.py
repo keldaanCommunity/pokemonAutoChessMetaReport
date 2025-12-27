@@ -73,11 +73,14 @@ for pkm in LIST_POKEMON:
 
 LIST_TYPE = [k.lower() for k in TYPE_POKEMON.keys()]
 
+# Determine database name based on environment
+DB_NAME = os.environ.get("DATABASE_ENV", "test")  # defaults to "test" for local debugging
 
-def load_data_mongodb(time_limit):
+
+def load_data_mongodb(time_limit, db_name=DB_NAME):
     uri = os.environ.get("MONGO_URI")
     client = MongoClient(uri)
-    db = client.prod
+    db = client[db_name]
     collection = db['detailledstatisticv2']
     cursor = collection.find({"time": {"$gt": time_limit}})
     result = list(cursor)
@@ -311,6 +314,55 @@ def create_pokemon_data_elo_threshold(json_data):
     return elo_threshold_stats.values()
 
 
+def create_region_data(json_data):
+    region_stats = {}
+
+    # Collect all unique regions from data and initialize stats
+    for match in json_data:
+        if "regions" in match:
+            for region in match["regions"]:
+                if region not in region_stats:
+                    region_stats[region] = {
+                        "name": region,
+                        "count": 0,
+                        "rank": 0,
+                        "elo": 0,
+                        "pokemons": {}
+                    }
+
+    # Aggregate stats
+    for match in json_data:
+        nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
+        if "regions" in match:
+            for region in match["regions"]:
+                region_stats[region]["count"] += 1
+                region_stats[region]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+                region_stats[region]["elo"] += match["elo"]
+
+                # Track pokemons with this region
+                for pokemon in match["pokemons"]:
+                    name = pokemon["name"]
+                    if name in region_stats[region]["pokemons"]:
+                        region_stats[region]["pokemons"][name] += 1
+                    else:
+                        region_stats[region]["pokemons"][name] = 1
+
+    # Calculate means and format
+    for region in region_stats:
+        count = region_stats[region]["count"]
+        if count > 0:
+            region_stats[region]["rank"] = round(
+                region_stats[region]["rank"] / count, 2)
+            region_stats[region]["elo"] = round(
+                region_stats[region]["elo"] / count, 2)
+        region_stats[region]["pokemons"] = dict(
+            sorted(region_stats[region]["pokemons"].items(), key=lambda x: x[1], reverse=True))
+        region_stats[region]["pokemons"] = list(
+            region_stats[region]["pokemons"])[:3]
+
+    return region_stats.values()
+
+
 def create_dataframe(json_data):
     list_match = []
     for i in range(len(json_data)):
@@ -499,23 +551,27 @@ def main():
 
     print(f"{datetime.now().time()} creating metadata...")
     metadata = create_metadata(json_data, time_limit)
-    export_data_mongodb(metadata, "prod", "metadata")
+    export_data_mongodb(metadata, DB_NAME, "metadata")
 
     # print(f"{datetime.now().time()} creating item data...")
     # items = create_item_data(json_data)
-    # export_data_mongodb(items, "prod", "items-statistic")
+    # export_data_mongodb(items, DB_NAME, "items-statistic")
 
     print(f"{datetime.now().time()} creating item data with threshold...")
     items = create_item_data_elo_threshold(json_data)
-    export_data_mongodb(items, "prod", "items-statistic-v2")
+    export_data_mongodb(items, DB_NAME, "items-statistic-v2")
 
     #print(f"{datetime.now().time()} creating pokemon data...")
     #pokemons = create_pokemon_data(json_data)
-    #export_data_mongodb(pokemons, "prod", "pokemons-statistic")
+    #export_data_mongodb(pokemons, DB_NAME, "pokemons-statistic")
 
     print(f"{datetime.now().time()} creating pokemon data with threshold...")
     pokemons = create_pokemon_data_elo_threshold(json_data)
-    export_data_mongodb(pokemons, "prod", "pokemons-statistic-v2")
+    export_data_mongodb(pokemons, DB_NAME, "pokemons-statistic-v2")
+
+    #print(f"{datetime.now().time()} creating region data...")
+    #regions = create_region_data(json_data)
+    #export_data_mongodb(regions, DB_NAME, "regions-statistic")
 
     #print(f"{datetime.now().time()} creating dataframe...")
     #df_match = create_dataframe(json_data)
@@ -534,7 +590,7 @@ def main():
     #report = get_meta_report(df_concat)
 
     #print(f"{datetime.now().time()} write output file...")
-    #export_data_mongodb(report, "prod", "meta")
+    #export_data_mongodb(report, DB_NAME, "meta")
 
 
 if __name__ == "__main__":
