@@ -77,7 +77,7 @@ LIST_TYPE = [k.lower() for k in TYPE_POKEMON.keys()]
 def load_data_mongodb(time_limit):
     uri = os.environ.get("MONGO_URI")
     client = MongoClient(uri)
-    db = client.test
+    db = client.prod
     collection = db['detailledstatisticv2']
     cursor = collection.find({"time": {"$gt": time_limit}})
     result = list(cursor)
@@ -499,23 +499,23 @@ def main():
 
     print(f"{datetime.now().time()} creating metadata...")
     metadata = create_metadata(json_data, time_limit)
-    export_data_mongodb(metadata, "test", "metadata")
+    export_data_mongodb(metadata, "prod", "metadata")
 
     # print(f"{datetime.now().time()} creating item data...")
     # items = create_item_data(json_data)
-    # export_data_mongodb(items, "test", "items-statistic")
+    # export_data_mongodb(items, "prod", "items-statistic")
 
     print(f"{datetime.now().time()} creating item data with threshold...")
     items = create_item_data_elo_threshold(json_data)
-    export_data_mongodb(items, "test", "items-statistic-v2")
+    export_data_mongodb(items, "prod", "items-statistic-v2")
 
     #print(f"{datetime.now().time()} creating pokemon data...")
     #pokemons = create_pokemon_data(json_data)
-    #export_data_mongodb(pokemons, "test", "pokemons-statistic")
+    #export_data_mongodb(pokemons, "prod", "pokemons-statistic")
 
     print(f"{datetime.now().time()} creating pokemon data with threshold...")
     pokemons = create_pokemon_data_elo_threshold(json_data)
-    export_data_mongodb(pokemons, "test", "pokemons-statistic-v2")
+    export_data_mongodb(pokemons, "prod", "pokemons-statistic-v2")
 
     #print(f"{datetime.now().time()} creating dataframe...")
     #df_match = create_dataframe(json_data)
@@ -534,7 +534,7 @@ def main():
     #report = get_meta_report(df_concat)
 
     #print(f"{datetime.now().time()} write output file...")
-    #export_data_mongodb(report, "test", "meta")
+    #export_data_mongodb(report, "prod", "meta")
 
 
 if __name__ == "__main__":
