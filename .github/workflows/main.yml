@@ -24,8 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: execute py script # run generate.py
+      - name: execute py script # run main.py
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           DATABASE_ENV: prod
-        run: python generate.py
+        run: python -m src.main
