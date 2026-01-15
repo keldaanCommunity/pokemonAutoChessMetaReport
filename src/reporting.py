@@ -154,6 +154,36 @@ def get_meta_report(df):
         
         meta_report["mean_team"] = mean_team
         
+        # Calculate mean items for the cluster
+        all_items = []  # Collect all items from all Pokemon in cluster
+        for _, row in df_sub_cluster.iterrows():
+            if "pokemons" in row and row["pokemons"]:
+                pokemons_list = row["pokemons"]
+                for pokemon_entry in pokemons_list:
+                    if isinstance(pokemon_entry, dict):
+                        pokemon_items = pokemon_entry.get("items", [])
+                    else:
+                        pokemon_items = []
+                    
+                    if pokemon_items:
+                        all_items.extend(pokemon_items)
+        
+        # Calculate item frequencies (top 5 only)
+        mean_items_list = []
+        if all_items:
+            from collections import Counter
+            item_counts = Counter(all_items)
+            total_items = len(all_items)
+            
+            # Sort by frequency descending and keep top 5
+            for item, count in item_counts.most_common(5):
+                mean_items_list.append({
+                    "item": item,
+                    "frequency": round(count / total_items, 3)
+                })
+        
+        meta_report["mean_items"] = mean_items_list
+        
         # Get top 6 teams (ranked by placement/winrate)
         top_teams = []
         df_sorted = df_sub_cluster.sort_values("rank").head(6)
