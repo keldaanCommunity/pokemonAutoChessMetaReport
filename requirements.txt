@@ -1,6 +1,7 @@
 pandas
 scikit-learn
 matplotlib
+umap-learn
 pymongo[srv]
 python-dotenv
 requests
