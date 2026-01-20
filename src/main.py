@@ -19,7 +19,8 @@ from .dimensionality import (
     plot_tsne_learning_rate_comparison, plot_tsne_early_exaggeration_comparison
 )
 from .clustering import (
-    apply_clustering, get_adaptive_min_samples, plot_cluster_parameters
+    apply_clustering, get_adaptive_min_samples, plot_cluster_parameters,
+    apply_kmeans_clustering, get_adaptive_k_clusters, plot_kmeans_parameters
 )
 from .reporting import get_meta_report, create_metadata, export_data_mongodb, export_meta_report_text, export_meta_report_json, visualize_meta_report, export_meta_report_mongodb
 
@@ -51,11 +52,13 @@ def run_analysis(json_data, elo_threshold=None):
 
     # Create results directory structure
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_dir = f"results_1100+_{timestamp}"
+    results_dir = f"results_{timestamp}"
     tsne_dir = os.path.join(results_dir, "tsne")
     dbscan_dir = os.path.join(results_dir, "dbscan")
+    kmeans_dir = os.path.join(results_dir, "kmeans")
     os.makedirs(tsne_dir, exist_ok=True)
     os.makedirs(dbscan_dir, exist_ok=True)
+    os.makedirs(kmeans_dir, exist_ok=True)
     print(f"{datetime.now().time()} created results directory: {results_dir}")
 
     # Testing flags
@@ -116,8 +119,8 @@ def run_analysis(json_data, elo_threshold=None):
         plot_tsne_early_exaggeration_comparison(df_filtered, [8, 12, 16, 20], 
                                                adaptive_perplexity, output_dir=tsne_dir)
 
-    print(f"{datetime.now().time()} applying DBSCAN...")
-    df_cluster = apply_clustering(df_tsne, 3, adaptive_min_samples, save=SAVE_PLOTS, output_dir=dbscan_dir)
+    #print(f"{datetime.now().time()} applying DBSCAN...")
+    #df_cluster = apply_clustering(df_tsne, 3, adaptive_min_samples, save=SAVE_PLOTS, output_dir=dbscan_dir)
     
     if not SKIP_DBSCAN_GRID:
         print(f"{datetime.now().time()} grid search for DBSCAN parameters...")
@@ -131,12 +134,27 @@ def run_analysis(json_data, elo_threshold=None):
         print(f"{datetime.now().time()} testing min_samples values: {min_samples_values}")
         plot_cluster_parameters(df_tsne, min_samples_values, epsilon_values, output_dir=dbscan_dir)
 
+    print(f"{datetime.now().time()} applying K-Means...")
+    adaptive_k = get_adaptive_k_clusters(n_samples, method="permissive")
+    df_kmeans = apply_kmeans_clustering(df_tsne, adaptive_k, save=SAVE_PLOTS, output_dir=kmeans_dir)
+    
+    if not SKIP_DBSCAN_GRID:
+        print(f"{datetime.now().time()} grid search for K-Means parameters...")
+        k_values = [
+            get_adaptive_k_clusters(n_samples, method="permissive"),
+            get_adaptive_k_clusters(n_samples, method="aggressive"),
+            get_adaptive_k_clusters(n_samples, method="balanced"),
+            get_adaptive_k_clusters(n_samples, method="conservative"),
+        ]
+        print(f"{datetime.now().time()} testing k values: {k_values}")
+        plot_kmeans_parameters(df_tsne, k_values, output_dir=kmeans_dir)
+
     print(f"{datetime.now().time()} create meta report...")
     # Build the final dataframe with all required columns
     df_concat = df_match.copy()
     df_concat["x"] = df_tsne["x"]
     df_concat["y"] = df_tsne["y"]
-    df_concat["cluster_id"] = df_cluster["cluster_id"]
+    df_concat["cluster_id"] = df_kmeans["cluster_id"]
     report = get_meta_report(df_concat)
 
     # Export reports: debug mode uses text/json/visualization files, prod uses MongoDB
@@ -159,7 +177,7 @@ def main():
     """Main entry point for Pokemon Auto Chess Meta Report analysis"""
     print(f"{datetime.now().time()} load data from MongoDB")
     time_now = math.floor(datetime.now().timestamp() * 1000)
-    time_limit = time_now - 15 * (24 * 60 * 60 * 1000)
+    time_limit = time_now - 55 * (24 * 60 * 60 * 1000)
     
     debug_limit = os.environ.get("DEBUG_LIMIT")
     debug_limit = int(debug_limit) if debug_limit else None
