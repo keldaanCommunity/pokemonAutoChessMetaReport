@@ -309,7 +309,7 @@ def main():
     """Main entry point for Pokemon Auto Chess Meta Report analysis"""
     print(f"{datetime.now().time()} load data from MongoDB")
     time_now = math.floor(datetime.now().timestamp() * 1000)
-    time_limit = time_now - 55 * (24 * 60 * 60 * 1000)
+    time_limit = time_now - 15 * (24 * 60 * 60 * 1000)
 
     debug_limit = os.environ.get("DEBUG_LIMIT")
     debug_limit = int(debug_limit) if debug_limit else None
