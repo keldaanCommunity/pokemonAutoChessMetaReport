@@ -25,6 +25,7 @@ from .dimensionality import (
     plot_tsne_early_exaggeration_comparison,
     apply_umap,
     plot_umap_parameters_grid,
+    apply_pca,
 )
 from .clustering import (
     apply_clustering,
@@ -80,10 +81,12 @@ def run_analysis(json_data, elo_threshold=None):
     results_dir = f"results_{timestamp}"
     tsne_dir = os.path.join(results_dir, "tsne")
     umap_dir = os.path.join(results_dir, "umap")
+    pca_dir = os.path.join(results_dir, "pca")
     dbscan_dir = os.path.join(results_dir, "dbscan")
     kmeans_dir = os.path.join(results_dir, "kmeans")
     os.makedirs(tsne_dir, exist_ok=True)
     os.makedirs(umap_dir, exist_ok=True)
+    os.makedirs(pca_dir, exist_ok=True)
     os.makedirs(dbscan_dir, exist_ok=True)
     os.makedirs(kmeans_dir, exist_ok=True)
     print(f"{datetime.now().time()} created results directory: {results_dir}")
@@ -134,27 +137,27 @@ def run_analysis(json_data, elo_threshold=None):
         print(f"{datetime.now().time()} testing perplexity values: {perplexity_nums}")
         plot_tsne_parameters(df_filtered, perplexity_nums, output_dir=tsne_dir)
 
-        # print(f"{datetime.now().time()} comparing t-SNE initialization methods...")
-        # plot_tsne_init_comparison(
-        #     df_filtered, ["pca", "random"], output_dir=tsne_dir)
+        print(f"{datetime.now().time()} comparing t-SNE initialization methods...")
+        plot_tsne_init_comparison(
+            df_filtered, ["pca", "random"], output_dir=tsne_dir)
 
-        # print(f"{datetime.now().time()} comparing t-SNE distance metrics...")
-        # plot_tsne_metric_comparison(
-        #     df_filtered, ["euclidean", "cosine", "manhattan"], output_dir=tsne_dir
-        # )
+        print(f"{datetime.now().time()} comparing t-SNE distance metrics...")
+        plot_tsne_metric_comparison(
+            df_filtered, ["euclidean", "cosine", "manhattan"], output_dir=tsne_dir
+        )
 
-        # print(f"{datetime.now().time()} comparing t-SNE learning rates...")
-        # plot_tsne_learning_rate_comparison(
-        #     df_filtered,
-        #     ["auto", 200, 500, 800],
-        #     adaptive_perplexity,
-        #     output_dir=tsne_dir,
-        # )
+        print(f"{datetime.now().time()} comparing t-SNE learning rates...")
+        plot_tsne_learning_rate_comparison(
+            df_filtered,
+            ["auto", 200, 500, 800],
+            perplexity,
+            output_dir=tsne_dir,
+        )
 
-        # print(f"{datetime.now().time()} comparing t-SNE early exaggeration values...")
-        # plot_tsne_early_exaggeration_comparison(
-        #     df_filtered, [8, 12, 16, 20], adaptive_perplexity, output_dir=tsne_dir
-        # )
+        print(f"{datetime.now().time()} comparing t-SNE early exaggeration values...")
+        plot_tsne_early_exaggeration_comparison(
+            df_filtered, [8, 12, 16, 20], perplexity, output_dir=tsne_dir
+        )
 
     # min_dist = 0.01
     # n_neighbors = 15
@@ -174,6 +177,9 @@ def run_analysis(json_data, elo_threshold=None):
         plot_umap_parameters_grid(
             df_filtered, n_neighbors_values, min_dist_values, output_dir=umap_dir
         )
+
+    # print(f"{datetime.now().time()} applying PCA...")
+    # df_pca = apply_pca(df_filtered, save=SAVE_PLOTS, output_dir=pca_dir)
 
     epsilon = 3
     min_samples = 20
