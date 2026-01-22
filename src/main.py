@@ -31,6 +31,8 @@ from .dimensionality import (
     plot_phate_mds_comparison,
     apply_isomap,
     plot_isomap_parameters,
+    apply_spectral_embedding,
+    plot_spectral_embedding_parameters_grid,
 )
 from .clustering import (
     apply_clustering,
@@ -89,6 +91,7 @@ def run_analysis(json_data, elo_threshold=None):
     pca_dir = os.path.join(results_dir, "pca")
     phate_dir = os.path.join(results_dir, "phate")
     isomap_dir = os.path.join(results_dir, "isomap")
+    spectral_dir = os.path.join(results_dir, "spectral")
     dbscan_dir = os.path.join(results_dir, "dbscan")
     kmeans_dir = os.path.join(results_dir, "kmeans")
     os.makedirs(tsne_dir, exist_ok=True)
@@ -96,6 +99,7 @@ def run_analysis(json_data, elo_threshold=None):
     os.makedirs(pca_dir, exist_ok=True)
     os.makedirs(phate_dir, exist_ok=True)
     os.makedirs(isomap_dir, exist_ok=True)
+    os.makedirs(spectral_dir, exist_ok=True)
     os.makedirs(dbscan_dir, exist_ok=True)
     os.makedirs(kmeans_dir, exist_ok=True)
     print(f"{datetime.now().time()} created results directory: {results_dir}")
@@ -120,6 +124,9 @@ def run_analysis(json_data, elo_threshold=None):
     )
     SKIP_ISOMAP_COMPARISON = (
         os.environ.get("SKIP_ISOMAP_COMPARISON").lower() == "true"
+    )
+    SKIP_SPECTRAL_COMPARISON = (
+        os.environ.get("SKIP_SPECTRAL_COMPARISON").lower() == "true"
     )
     SAVE_PLOTS = os.environ.get("SAVE_PLOTS", "false").lower() == "true"
 
@@ -184,14 +191,14 @@ def run_analysis(json_data, elo_threshold=None):
 
     # Skip UMAP, PCA, PHATE in production mode - only use t-SNE
     if debug_mode:
-        min_dist = 0.01
-        n_neighbors = 15
-        print(f"{datetime.now().time()} applying UMAP...")
-        df_umap = apply_umap(
-            df_filtered, n_neighbors, min_dist, save=SAVE_PLOTS, output_dir=umap_dir
-        )
-
         if not SKIP_UMAP_COMPARISON:
+            min_dist = 0.01
+            n_neighbors = 15
+            print(f"{datetime.now().time()} applying UMAP...")
+            df_umap = apply_umap(
+                df_filtered, n_neighbors, min_dist, save=SAVE_PLOTS, output_dir=umap_dir
+            )
+
             print(f"{datetime.now().time()} grid search for UMAP parameters...")
             n_neighbors_values = [5, 10, 15, 30, 60, 100, 150, 200]
             min_dist_values = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5]
@@ -207,13 +214,13 @@ def run_analysis(json_data, elo_threshold=None):
         print(f"{datetime.now().time()} applying PCA...")
         df_pca = apply_pca(df_filtered, save=SAVE_PLOTS, output_dir=pca_dir)
 
-        k_neighbors = 40
-        decay = 20
-        print(f"{datetime.now().time()} applying PHATE...")
-        df_phate = apply_phate(df_filtered, k_neighbors=k_neighbors,
-                               decay=decay, save=SAVE_PLOTS, output_dir=phate_dir)
-
         if not SKIP_PHATE_COMPARISON:
+            k_neighbors = 40
+            decay = 20
+            print(f"{datetime.now().time()} applying PHATE...")
+            df_phate = apply_phate(df_filtered, k_neighbors=k_neighbors,
+                                   decay=decay, save=SAVE_PLOTS, output_dir=phate_dir)
+
             print(f"{datetime.now().time()} grid search for PHATE parameters...")
             k_neighbors_values = [15, 20, 30, 40, 50]
             decay_values = [5, 10, 15, 20, 25]
@@ -230,16 +237,35 @@ def run_analysis(json_data, elo_threshold=None):
                 df_filtered, knn=k_neighbors, decay=decay, output_dir=phate_dir
             )
 
-        print(f"{datetime.now().time()} applying Isomap...")
-        df_isomap = apply_isomap(
-            df_filtered, n_neighbors=15, save=SAVE_PLOTS, output_dir=isomap_dir)
-
         if not SKIP_ISOMAP_COMPARISON:
+            print(f"{datetime.now().time()} applying Isomap...")
+            df_isomap = apply_isomap(
+                df_filtered, n_neighbors=15, save=SAVE_PLOTS, output_dir=isomap_dir)
+
             print(
                 f"{datetime.now().time()} grid search for Isomap n_neighbors parameter...")
             n_neighbors_values = [5, 10, 15, 20, 25]
             plot_isomap_parameters(
                 df_filtered, n_neighbors_values, output_dir=isomap_dir
+            )
+
+        if not SKIP_SPECTRAL_COMPARISON:
+            print(f"{datetime.now().time()} applying Spectral Embedding...")
+            df_spectral = apply_spectral_embedding(
+                df_filtered, n_neighbors=10, affinity='nearest_neighbors',
+                save=SAVE_PLOTS, output_dir=spectral_dir)
+
+            print(
+                f"{datetime.now().time()} grid search for Spectral Embedding parameters...")
+            n_neighbors_values = [5, 10, 15]
+            affinity_values = ['nearest_neighbors', 'rbf']
+            print(
+                f"{datetime.now().time()} testing n_neighbors values: {n_neighbors_values}"
+            )
+            print(
+                f"{datetime.now().time()} testing affinity values: {affinity_values}")
+            plot_spectral_embedding_parameters_grid(
+                df_filtered, n_neighbors_values, affinity_values, output_dir=spectral_dir
             )
 
     epsilon = 3
@@ -262,13 +288,13 @@ def run_analysis(json_data, elo_threshold=None):
 
     # Skip K-Means in production mode - only use t-SNE + DBSCAN
     if debug_mode:
-        n_samples = len(df_tsne)
-        print(f"{datetime.now().time()} applying K-Means...")
-        adaptive_k = get_adaptive_k_clusters(method="permissive")
-        df_kmeans = apply_kmeans_clustering(
-            df_tsne, adaptive_k, save=SAVE_PLOTS, output_dir=kmeans_dir)
-
         if not SKIP_KMEANS_COMPARISON:
+            n_samples = len(df_tsne)
+            print(f"{datetime.now().time()} applying K-Means...")
+            adaptive_k = get_adaptive_k_clusters(method="permissive")
+            df_kmeans = apply_kmeans_clustering(
+                df_tsne, adaptive_k, save=SAVE_PLOTS, output_dir=kmeans_dir)
+
             print(f"{datetime.now().time()} grid search for K-Means parameters...")
             k_values = [
                 get_adaptive_k_clusters("permissive"),
