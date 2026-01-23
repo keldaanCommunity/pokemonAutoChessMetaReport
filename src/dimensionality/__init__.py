@@ -31,6 +31,8 @@ from .pacmap import apply_pacmap, plot_pacmap_parameters_grid, plot_pacmap_n_nei
 
 from .trimap import apply_trimap, plot_trimap_parameters_grid, plot_trimap_n_random_grid
 
+from .nmf import apply_nmf, plot_nmf_parameters_grid, plot_nmf_init_comparison, plot_nmf_solver_comparison, plot_nmf_regularization_grid
+
 __all__ = [
     # t-SNE
     "apply_tsne",
@@ -63,4 +65,10 @@ __all__ = [
     "apply_trimap",
     "plot_trimap_parameters_grid",
     "plot_trimap_n_random_grid",
+    # NMF
+    "apply_nmf",
+    "plot_nmf_parameters_grid",
+    "plot_nmf_init_comparison",
+    "plot_nmf_solver_comparison",
+    "plot_nmf_regularization_grid",
 ]

@@ -38,6 +38,11 @@ from .dimensionality import (
     apply_trimap,
     plot_trimap_parameters_grid,
     plot_trimap_n_random_grid,
+    apply_nmf,
+    plot_nmf_parameters_grid,
+    plot_nmf_init_comparison,
+    plot_nmf_solver_comparison,
+    plot_nmf_regularization_grid,
 )
 from .clustering import (
     apply_clustering,
@@ -108,6 +113,12 @@ DIMENSIONALITY_METHODS = {
         "comparison_enabled": "SKIP_TRIMAP_COMPARISON",
         "compare_func": plot_trimap_parameters_grid,
     },
+    "nmf": {
+        "apply": apply_nmf,
+        "default_params": {"n_components": 2, "init": "random"},
+        "comparison_enabled": "SKIP_NMF_COMPARISON",
+        "compare_func": plot_nmf_parameters_grid,
+    },
 }
 
 # Clustering method registry
@@ -175,6 +186,7 @@ def run_analysis(json_data, elo_threshold=None):
         "spectral": os.path.join(results_dir, "spectral"),
         "pacmap": os.path.join(results_dir, "pacmap"),
         "trimap": os.path.join(results_dir, "trimap"),
+        "nmf": os.path.join(results_dir, "nmf"),
         "dbscan": os.path.join(results_dir, "dbscan"),
         "kmeans": os.path.join(results_dir, "kmeans"),
     }
@@ -292,6 +304,37 @@ def run_analysis(json_data, elo_threshold=None):
             n_outliers_values = [2, 4, 6]
             plot_trimap_n_random_grid(
                 df_filtered, n_random_values, n_inliers_values, n_outliers_values, output_dir=method_dir)
+
+        elif dim_reduction_method == "nmf":
+            init_values = ['random', 'nndsvd', 'nndsvda', 'nndsvdar']
+            solver_values = ['cd', 'mu']
+            alpha_W_values = [0.0, 0.1, 0.5]
+            beta_loss_values = ['frobenius',
+                                'kullback-leibler', 'itakura-saito']
+
+            # Plot comprehensive 4x2 grid: init methods × solvers
+            print(
+                f"{datetime.now().time()} NMF: generating 4x2 parameters grid (init methods × solvers)...")
+            plot_nmf_parameters_grid(df_filtered, init_values=init_values,
+                                     solver_values=solver_values, output_dir=method_dir)
+
+            # Plot 3x3 grid: regularization × loss functions
+            print(
+                f"{datetime.now().time()} NMF: generating 3x3 regularization grid (alpha_W × beta_loss)...")
+            plot_nmf_regularization_grid(df_filtered, init_method='nndsvda',
+                                         alpha_W_values=alpha_W_values,
+                                         beta_loss_values=beta_loss_values, output_dir=method_dir)
+
+            # Plot 1x4 init comparison
+            print(f"{datetime.now().time()} NMF: generating init comparison plot...")
+            plot_nmf_init_comparison(
+                df_filtered, init_values=init_values, output_dir=method_dir)
+
+            # Plot 1x2 solver comparison
+            print(
+                f"{datetime.now().time()} NMF: generating solver comparison plot...")
+            plot_nmf_solver_comparison(
+                df_filtered, solver_values=solver_values, output_dir=method_dir)
 
     # Apply clustering method
     clustering_info = CLUSTERING_METHODS[clustering_method]
