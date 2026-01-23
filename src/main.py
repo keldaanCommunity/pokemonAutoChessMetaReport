@@ -17,7 +17,6 @@ from .data_loader import (
 )
 from .dimensionality import (
     apply_tsne,
-    get_adaptive_perplexity,
     plot_tsne_parameters,
     plot_tsne_init_comparison,
     plot_tsne_metric_comparison,
@@ -33,6 +32,9 @@ from .dimensionality import (
     plot_isomap_parameters,
     apply_spectral_embedding,
     plot_spectral_embedding_parameters_grid,
+    apply_pacmap,
+    plot_pacmap_parameters_grid,
+    plot_pacmap_n_neighbors_grid,
 )
 from .clustering import (
     apply_clustering,
@@ -51,6 +53,71 @@ from .reporting import (
     visualize_meta_report,
     export_meta_report_mongodb,
 )
+
+
+# Dimensionality reduction method registry
+DIMENSIONALITY_METHODS = {
+    "tsne": {
+        "apply": apply_tsne,
+        "default_params": {"perplexity": 55},
+        "comparison_enabled": "SKIP_TSNE_COMPARISON",
+        "compare_func": plot_tsne_parameters,
+    },
+    "umap": {
+        "apply": apply_umap,
+        "default_params": {"n_neighbors": 15, "min_dist": 0.1},
+        "comparison_enabled": "SKIP_UMAP_COMPARISON",
+        "compare_func": plot_umap_parameters_grid,
+    },
+    "pca": {
+        "apply": apply_pca,
+        "default_params": {},
+        "comparison_enabled": "SKIP_PCA_COMPARISON",
+        "compare_func": None,
+    },
+    "phate": {
+        "apply": apply_phate,
+        "default_params": {"k_neighbors": 40, "decay": 20},
+        "comparison_enabled": "SKIP_PHATE_COMPARISON",
+        "compare_func": plot_phate_parameters_grid,
+    },
+    "isomap": {
+        "apply": apply_isomap,
+        "default_params": {"n_neighbors": 15},
+        "comparison_enabled": "SKIP_ISOMAP_COMPARISON",
+        "compare_func": plot_isomap_parameters,
+    },
+    "spectral": {
+        "apply": apply_spectral_embedding,
+        "default_params": {"n_neighbors": 10, "affinity": "nearest_neighbors"},
+        "comparison_enabled": "SKIP_SPECTRAL_COMPARISON",
+        "compare_func": plot_spectral_embedding_parameters_grid,
+    },
+    "pacmap": {
+        "apply": apply_pacmap,
+        "default_params": {"n_neighbors": 20, "MN_ratio": 0.5, "FP_ratio": 7.0},
+        "comparison_enabled": "SKIP_PACMAP_COMPARISON",
+        "compare_func": plot_pacmap_parameters_grid,
+    },
+}
+
+# Clustering method registry
+CLUSTERING_METHODS = {
+    "dbscan": {
+        "apply": apply_clustering,
+        # tsne-adapted parameters {"epsilon": 3, "min_samples": 20}
+        # pacmap adapted parameters {"epsilon": 0.7, "min_samples": 8}
+        "default_params": {"epsilon": 3, "min_samples": 20},
+        "comparison_enabled": "SKIP_DBSCAN_COMPARISON",
+        "compare_func": plot_cluster_parameters,
+    },
+    "kmeans": {
+        "apply": apply_kmeans_clustering,
+        "default_params": {"adaptive_k": "permissive"},
+        "comparison_enabled": "SKIP_KMEANS_COMPARISON",
+        "compare_func": plot_kmeans_parameters,
+    },
+}
 
 
 def run_analysis(json_data, elo_threshold=None):
@@ -86,58 +153,43 @@ def run_analysis(json_data, elo_threshold=None):
     # Create results directory structure
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_dir = f"results_{timestamp}"
-    tsne_dir = os.path.join(results_dir, "tsne")
-    umap_dir = os.path.join(results_dir, "umap")
-    pca_dir = os.path.join(results_dir, "pca")
-    phate_dir = os.path.join(results_dir, "phate")
-    isomap_dir = os.path.join(results_dir, "isomap")
-    spectral_dir = os.path.join(results_dir, "spectral")
-    dbscan_dir = os.path.join(results_dir, "dbscan")
-    kmeans_dir = os.path.join(results_dir, "kmeans")
-    os.makedirs(tsne_dir, exist_ok=True)
-    os.makedirs(umap_dir, exist_ok=True)
-    os.makedirs(pca_dir, exist_ok=True)
-    os.makedirs(phate_dir, exist_ok=True)
-    os.makedirs(isomap_dir, exist_ok=True)
-    os.makedirs(spectral_dir, exist_ok=True)
-    os.makedirs(dbscan_dir, exist_ok=True)
-    os.makedirs(kmeans_dir, exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
     print(f"{datetime.now().time()} created results directory: {results_dir}")
 
-    # Testing flags
-    debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
+    # Define subdirectory paths (will be created only when needed)
+    method_dirs = {
+        "tsne": os.path.join(results_dir, "tsne"),
+        "umap": os.path.join(results_dir, "umap"),
+        "pca": os.path.join(results_dir, "pca"),
+        "phate": os.path.join(results_dir, "phate"),
+        "isomap": os.path.join(results_dir, "isomap"),
+        "spectral": os.path.join(results_dir, "spectral"),
+        "pacmap": os.path.join(results_dir, "pacmap"),
+        "dbscan": os.path.join(results_dir, "dbscan"),
+        "kmeans": os.path.join(results_dir, "kmeans"),
+    }
 
-    SKIP_TSNE_COMPARISON = (
-        os.environ.get("SKIP_TSNE_COMPARISON").lower() == "true"
-    )
-    SKIP_UMAP_COMPARISON = (
-        os.environ.get("SKIP_UMAP_COMPARISON").lower() == "true"
-    )
-    SKIP_DBSCAN_COMPARISON = (
-        os.environ.get("SKIP_DBSCAN_COMPARISON").lower() == "true"
-    )
-    SKIP_KMEANS_COMPARISON = (
-        os.environ.get("SKIP_KMEANS_COMPARISON").lower() == "true"
-    )
-    SKIP_PHATE_COMPARISON = (
-        os.environ.get("SKIP_PHATE_COMPARISON").lower() == "true"
-    )
-    SKIP_ISOMAP_COMPARISON = (
-        os.environ.get("SKIP_ISOMAP_COMPARISON").lower() == "true"
-    )
-    SKIP_SPECTRAL_COMPARISON = (
-        os.environ.get("SKIP_SPECTRAL_COMPARISON").lower() == "true"
-    )
+    # Parse environment variables
+    debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
     SAVE_PLOTS = os.environ.get("SAVE_PLOTS", "false").lower() == "true"
 
-    if debug_mode:
-        print(
-            f"{datetime.now().time()} DEBUG MODE: Running all dimensionality reduction comparisons")
-    else:
-        print(f"{datetime.now().time()} PRODUCTION MODE: Running t-SNE + DBSCAN only")
+    # Get selected methods from environment variables (default to tsne + dbscan)
+    dim_reduction_method = os.environ.get(
+        "DIMENSIONALITY_METHOD", "tsne").lower()
+    clustering_method = os.environ.get("CLUSTERING_METHOD", "dbscan").lower()
 
-    print(f"{datetime.now().time()} applying t-SNE...")
-    # Select only numeric columns for t-SNE (exclude non-numeric columns like pokemons and items, and metadata like elo)
+    # Validate method selections
+    if dim_reduction_method not in DIMENSIONALITY_METHODS:
+        print(f"{datetime.now().time()} warning: unknown dimensionality method '{dim_reduction_method}', using 'tsne'")
+        dim_reduction_method = "tsne"
+
+    if clustering_method not in CLUSTERING_METHODS:
+        print(f"{datetime.now().time()} warning: unknown clustering method '{clustering_method}', using 'dbscan'")
+        clustering_method = "dbscan"
+
+    print(f"{datetime.now().time()} selected methods: dimensionality={dim_reduction_method}, clustering={clustering_method}")
+
+    # Select only numeric columns (exclude non-numeric columns like pokemons and items, and metadata like elo)
     numeric_cols = [
         col
         for col in df_match.columns
@@ -149,173 +201,141 @@ def run_analysis(json_data, elo_threshold=None):
         print(
             f"{datetime.now().time()} warning: no synergy columns found. Available columns: {list(df_match.columns)}"
         )
-        print(f"{datetime.now().time()} skipping t-SNE analysis")
+        print(f"{datetime.now().time()} skipping analysis")
         return None
 
     print(
-        f"{datetime.now().time()} using {len(numeric_cols)} synergy columns for t-SNE: {numeric_cols[:5]}..."
+        f"{datetime.now().time()} using {len(numeric_cols)} synergy columns: {numeric_cols[:5]}..."
     )
     df_filtered = df_match[numeric_cols]
 
-    perplexity = 55
-    df_tsne = apply_tsne(df_filtered, perplexity,
-                         save=SAVE_PLOTS, output_dir=tsne_dir)
+    # Apply dimensionality reduction method
+    print(f"{datetime.now().time()} applying {dim_reduction_method}...")
+    method_info = DIMENSIONALITY_METHODS[dim_reduction_method]
+    method_dir = method_dirs[dim_reduction_method]
+    skip_comparison_flag = method_info["comparison_enabled"]
+    skip_comparison = os.environ.get(
+        skip_comparison_flag, "true").lower() == "true"
 
-    if not SKIP_TSNE_COMPARISON:
-        print(f"{datetime.now().time()} comparing t-SNE perplexity values...")
-        perplexity_nums = [30, 35, 40, 45, 50, 55, 60, 70]
-        print(f"{datetime.now().time()} testing perplexity values: {perplexity_nums}")
-        plot_tsne_parameters(df_filtered, perplexity_nums, output_dir=tsne_dir)
+    if SAVE_PLOTS or not skip_comparison:
+        os.makedirs(method_dir, exist_ok=True)
 
-        print(f"{datetime.now().time()} comparing t-SNE initialization methods...")
-        plot_tsne_init_comparison(
-            df_filtered, ["pca", "random"], output_dir=tsne_dir)
-
-        print(f"{datetime.now().time()} comparing t-SNE distance metrics...")
-        plot_tsne_metric_comparison(
-            df_filtered, ["euclidean", "cosine", "manhattan"], output_dir=tsne_dir
-        )
-
-        print(f"{datetime.now().time()} comparing t-SNE learning rates...")
-        plot_tsne_learning_rate_comparison(
-            df_filtered,
-            ["auto", 200, 500, 800],
-            perplexity,
-            output_dir=tsne_dir,
-        )
-
-        print(f"{datetime.now().time()} comparing t-SNE early exaggeration values...")
-        plot_tsne_early_exaggeration_comparison(
-            df_filtered, [8, 12, 16, 20], perplexity, output_dir=tsne_dir
-        )
-
-    # Skip UMAP, PCA, PHATE in production mode - only use t-SNE
-    if debug_mode:
-        if not SKIP_UMAP_COMPARISON:
-            min_dist = 0.01
-            n_neighbors = 15
-            print(f"{datetime.now().time()} applying UMAP...")
-            df_umap = apply_umap(
-                df_filtered, n_neighbors, min_dist, save=SAVE_PLOTS, output_dir=umap_dir
-            )
-
-            print(f"{datetime.now().time()} grid search for UMAP parameters...")
-            n_neighbors_values = [5, 10, 15, 30, 60, 100, 150, 200]
-            min_dist_values = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5]
-            print(
-                f"{datetime.now().time()} testing n_neighbors values: {n_neighbors_values}"
-            )
-            print(
-                f"{datetime.now().time()} testing min_dist values: {min_dist_values}")
-            plot_umap_parameters_grid(
-                df_filtered, n_neighbors_values, min_dist_values, output_dir=umap_dir
-            )
-
-        print(f"{datetime.now().time()} applying PCA...")
-        df_pca = apply_pca(df_filtered, save=SAVE_PLOTS, output_dir=pca_dir)
-
-        if not SKIP_PHATE_COMPARISON:
-            k_neighbors = 40
-            decay = 20
-            print(f"{datetime.now().time()} applying PHATE...")
-            df_phate = apply_phate(df_filtered, k_neighbors=k_neighbors,
-                                   decay=decay, save=SAVE_PLOTS, output_dir=phate_dir)
-
-            print(f"{datetime.now().time()} grid search for PHATE parameters...")
-            k_neighbors_values = [15, 20, 30, 40, 50]
-            decay_values = [5, 10, 15, 20, 25]
-            print(
-                f"{datetime.now().time()} testing k_neighbors values: {k_neighbors_values}"
-            )
-            print(f"{datetime.now().time()} testing decay values: {decay_values}")
-            plot_phate_parameters_grid(
-                df_filtered, k_neighbors_values, decay_values, output_dir=phate_dir
-            )
-
-            print(f"{datetime.now().time()} comparing PHATE MDS methods...")
-            plot_phate_mds_comparison(
-                df_filtered, knn=k_neighbors, decay=decay, output_dir=phate_dir
-            )
-
-        if not SKIP_ISOMAP_COMPARISON:
-            print(f"{datetime.now().time()} applying Isomap...")
-            df_isomap = apply_isomap(
-                df_filtered, n_neighbors=15, save=SAVE_PLOTS, output_dir=isomap_dir)
-
-            print(
-                f"{datetime.now().time()} grid search for Isomap n_neighbors parameter...")
-            n_neighbors_values = [5, 10, 15, 20, 25]
-            plot_isomap_parameters(
-                df_filtered, n_neighbors_values, output_dir=isomap_dir
-            )
-
-        if not SKIP_SPECTRAL_COMPARISON:
-            print(f"{datetime.now().time()} applying Spectral Embedding...")
-            df_spectral = apply_spectral_embedding(
-                df_filtered, n_neighbors=10, affinity='nearest_neighbors',
-                save=SAVE_PLOTS, output_dir=spectral_dir)
-
-            print(
-                f"{datetime.now().time()} grid search for Spectral Embedding parameters...")
-            n_neighbors_values = [5, 10, 15]
-            affinity_values = ['nearest_neighbors', 'rbf']
-            print(
-                f"{datetime.now().time()} testing n_neighbors values: {n_neighbors_values}"
-            )
-            print(
-                f"{datetime.now().time()} testing affinity values: {affinity_values}")
-            plot_spectral_embedding_parameters_grid(
-                df_filtered, n_neighbors_values, affinity_values, output_dir=spectral_dir
-            )
-
-    epsilon = 3
-    min_samples = 20
-    print(f"{datetime.now().time()} applying DBSCAN...")
-    df_cluster = apply_clustering(
-        df_tsne, epsilon, min_samples, save=SAVE_PLOTS, output_dir=dbscan_dir
+    # Apply the main dimensionality reduction
+    df_reduced = method_info["apply"](
+        df_filtered, save=SAVE_PLOTS, output_dir=method_dir, **method_info["default_params"]
     )
 
-    if not SKIP_DBSCAN_COMPARISON:
-        print(f"{datetime.now().time()} grid search for DBSCAN parameters...")
-        min_samples_values = [5, 8, 10, 15]
-        epsilon_values = [0.3, 0.5, 0.7, 1.0]
+    # Run parameter comparisons if enabled and comparison function exists
+    if not skip_comparison and method_info["compare_func"] is not None:
         print(
-            f"{datetime.now().time()} testing min_samples values: {min_samples_values}"
+            f"{datetime.now().time()} running {dim_reduction_method} parameter comparison...")
+
+        if dim_reduction_method == "tsne":
+            perplexity_nums = [30, 35, 40, 45, 50, 55, 60, 70]
+            method_info["compare_func"](
+                df_filtered, perplexity_nums, output_dir=method_dir)
+            # Run additional t-SNE comparisons
+            plot_tsne_init_comparison(
+                df_filtered, ["pca", "random"], output_dir=method_dir)
+            plot_tsne_metric_comparison(
+                df_filtered, ["euclidean", "cosine", "manhattan"], output_dir=method_dir)
+            plot_tsne_learning_rate_comparison(df_filtered, [
+                                               "auto", 200, 500, 800], method_info["default_params"]["perplexity"], output_dir=method_dir)
+            plot_tsne_early_exaggeration_comparison(df_filtered, [
+                                                    8, 12, 16, 20], method_info["default_params"]["perplexity"], output_dir=method_dir)
+
+        elif dim_reduction_method == "umap":
+            n_neighbors_values = [5, 10, 15, 30, 60, 100, 150, 200]
+            min_dist_values = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5]
+            method_info["compare_func"](
+                df_filtered, n_neighbors_values, min_dist_values, output_dir=method_dir)
+
+        elif dim_reduction_method == "phate":
+            k_neighbors_values = [15, 20, 30, 40, 50]
+            decay_values = [5, 10, 15, 20, 25]
+            method_info["compare_func"](
+                df_filtered, k_neighbors_values, decay_values, output_dir=method_dir)
+            plot_phate_mds_comparison(df_filtered, knn=method_info["default_params"]["k_neighbors"],
+                                      decay=method_info["default_params"]["decay"], output_dir=method_dir)
+
+        elif dim_reduction_method == "isomap":
+            n_neighbors_values = [5, 10, 15, 20, 25]
+            method_info["compare_func"](
+                df_filtered, n_neighbors_values, output_dir=method_dir)
+
+        elif dim_reduction_method == "spectral":
+            n_neighbors_values = [5, 10, 15]
+            affinity_values = ['nearest_neighbors', 'rbf']
+            method_info["compare_func"](
+                df_filtered, n_neighbors_values, affinity_values, output_dir=method_dir)
+
+        elif dim_reduction_method == "pacmap":
+            n_neighbors_values = [20, 25, 30, 35]
+            MN_ratio_values = [0.3, 0.5, 0.7, 0.9]
+            FP_ratio_values = [5.0, 6.0, 7.0, 8.0]
+            plot_pacmap_n_neighbors_grid(
+                df_filtered, n_neighbors_values, MN_ratio_values, FP_ratio_values, output_dir=method_dir)
+
+    # Apply clustering method
+    clustering_info = CLUSTERING_METHODS[clustering_method]
+    clustering_dir = method_dirs[clustering_method]
+    skip_clustering_comparison_flag = clustering_info["comparison_enabled"]
+    skip_clustering_comparison = os.environ.get(
+        skip_clustering_comparison_flag, "true").lower() == "true"
+
+    if SAVE_PLOTS or not skip_clustering_comparison:
+        os.makedirs(clustering_dir, exist_ok=True)
+
+    print(f"{datetime.now().time()} applying {clustering_method}...")
+
+    if clustering_method == "dbscan":
+        df_cluster = clustering_info["apply"](
+            df_reduced,
+            epsilon=clustering_info["default_params"]["epsilon"],
+            min_samples=clustering_info["default_params"]["min_samples"],
+            save=SAVE_PLOTS,
+            output_dir=clustering_dir
         )
-        plot_cluster_parameters(
-            df_tsne, min_samples_values, epsilon_values, output_dir=dbscan_dir
+    elif clustering_method == "kmeans":
+        adaptive_k = get_adaptive_k_clusters(
+            method=clustering_info["default_params"]["adaptive_k"])
+        df_cluster = clustering_info["apply"](
+            df_reduced,
+            adaptive_k,
+            save=SAVE_PLOTS,
+            output_dir=clustering_dir
         )
 
-    # Skip K-Means in production mode - only use t-SNE + DBSCAN
-    if debug_mode:
-        if not SKIP_KMEANS_COMPARISON:
-            n_samples = len(df_tsne)
-            print(f"{datetime.now().time()} applying K-Means...")
-            adaptive_k = get_adaptive_k_clusters(method="permissive")
-            df_kmeans = apply_kmeans_clustering(
-                df_tsne, adaptive_k, save=SAVE_PLOTS, output_dir=kmeans_dir)
+    # Run parameter comparisons if enabled
+    if not skip_clustering_comparison and clustering_info["compare_func"] is not None:
+        print(
+            f"{datetime.now().time()} running {clustering_method} parameter comparison...")
 
-            print(f"{datetime.now().time()} grid search for K-Means parameters...")
+        if clustering_method == "dbscan":
+            min_samples_values = [5, 8, 10, 15]
+            epsilon_values = [0.3, 0.5, 0.7, 1.0]
+            clustering_info["compare_func"](
+                df_reduced, min_samples_values, epsilon_values, output_dir=clustering_dir)
+
+        elif clustering_method == "kmeans":
             k_values = [
                 get_adaptive_k_clusters("permissive"),
                 get_adaptive_k_clusters("aggressive"),
                 get_adaptive_k_clusters("balanced"),
                 get_adaptive_k_clusters("conservative"),
             ]
-            print(f"{datetime.now().time()} testing k values: {k_values}")
-            plot_kmeans_parameters(df_tsne, k_values, output_dir=kmeans_dir)
+            clustering_info["compare_func"](
+                df_reduced, k_values, output_dir=clustering_dir)
 
-    print(f"{datetime.now().time()} create meta report...")
+    print(f"{datetime.now().time()} creating meta report...")
     # Build the final dataframe with all required columns
     df_concat = df_match.copy()
-    df_concat["x"] = df_tsne["x"]
-    df_concat["y"] = df_tsne["y"]
+    df_concat["x"] = df_reduced["x"]
+    df_concat["y"] = df_reduced["y"]
     df_concat["cluster_id"] = df_cluster["cluster_id"]
     report = get_meta_report(df_concat)
 
     # Export reports: debug mode uses text/json/visualization files, prod uses MongoDB
-    debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
-
     if debug_mode:
         print(f"{datetime.now().time()} generating meta report outputs...")
         export_meta_report_text(report, results_dir)

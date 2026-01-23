@@ -3,6 +3,7 @@ scikit-learn
 matplotlib
 umap-learn
 phate
+pacmap
 pymongo[srv]
 python-dotenv
 requests
