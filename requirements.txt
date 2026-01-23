@@ -4,6 +4,7 @@ matplotlib
 umap-learn
 phate
 pacmap
+trimap
 pymongo[srv]
 python-dotenv
 requests

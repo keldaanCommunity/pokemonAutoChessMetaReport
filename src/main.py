@@ -35,6 +35,9 @@ from .dimensionality import (
     apply_pacmap,
     plot_pacmap_parameters_grid,
     plot_pacmap_n_neighbors_grid,
+    apply_trimap,
+    plot_trimap_parameters_grid,
+    plot_trimap_n_random_grid,
 )
 from .clustering import (
     apply_clustering,
@@ -98,6 +101,12 @@ DIMENSIONALITY_METHODS = {
         "default_params": {"n_neighbors": 20, "MN_ratio": 0.5, "FP_ratio": 7.0},
         "comparison_enabled": "SKIP_PACMAP_COMPARISON",
         "compare_func": plot_pacmap_parameters_grid,
+    },
+    "trimap": {
+        "apply": apply_trimap,
+        "default_params": {"n_inliers": 15, "n_outliers": 10, "n_random": 5},
+        "comparison_enabled": "SKIP_TRIMAP_COMPARISON",
+        "compare_func": plot_trimap_parameters_grid,
     },
 }
 
@@ -165,6 +174,7 @@ def run_analysis(json_data, elo_threshold=None):
         "isomap": os.path.join(results_dir, "isomap"),
         "spectral": os.path.join(results_dir, "spectral"),
         "pacmap": os.path.join(results_dir, "pacmap"),
+        "trimap": os.path.join(results_dir, "trimap"),
         "dbscan": os.path.join(results_dir, "dbscan"),
         "kmeans": os.path.join(results_dir, "kmeans"),
     }
@@ -231,7 +241,7 @@ def run_analysis(json_data, elo_threshold=None):
             f"{datetime.now().time()} running {dim_reduction_method} parameter comparison...")
 
         if dim_reduction_method == "tsne":
-            perplexity_nums = [30, 35, 40, 45, 50, 55, 60, 70]
+            perplexity_nums = [40, 45, 50, 55, 60, 65]
             method_info["compare_func"](
                 df_filtered, perplexity_nums, output_dir=method_dir)
             # Run additional t-SNE comparisons
@@ -239,10 +249,10 @@ def run_analysis(json_data, elo_threshold=None):
                 df_filtered, ["pca", "random"], output_dir=method_dir)
             plot_tsne_metric_comparison(
                 df_filtered, ["euclidean", "cosine", "manhattan"], output_dir=method_dir)
-            plot_tsne_learning_rate_comparison(df_filtered, [
-                                               "auto", 200, 500, 800], method_info["default_params"]["perplexity"], output_dir=method_dir)
-            plot_tsne_early_exaggeration_comparison(df_filtered, [
-                                                    8, 12, 16, 20], method_info["default_params"]["perplexity"], output_dir=method_dir)
+            # plot_tsne_learning_rate_comparison(df_filtered, [
+            #                                   "auto", 200, 500, 800], method_info["default_params"]["perplexity"], output_dir=method_dir)
+            # plot_tsne_early_exaggeration_comparison(df_filtered, [
+            #                                        8, 12, 16, 20], method_info["default_params"]["perplexity"], output_dir=method_dir)
 
         elif dim_reduction_method == "umap":
             n_neighbors_values = [5, 10, 15, 30, 60, 100, 150, 200]
@@ -275,6 +285,13 @@ def run_analysis(json_data, elo_threshold=None):
             FP_ratio_values = [5.0, 6.0, 7.0, 8.0]
             plot_pacmap_n_neighbors_grid(
                 df_filtered, n_neighbors_values, MN_ratio_values, FP_ratio_values, output_dir=method_dir)
+
+        elif dim_reduction_method == "trimap":
+            n_random_values = [2, 3, 4]
+            n_inliers_values = [8, 12, 16]
+            n_outliers_values = [2, 4, 6]
+            plot_trimap_n_random_grid(
+                df_filtered, n_random_values, n_inliers_values, n_outliers_values, output_dir=method_dir)
 
     # Apply clustering method
     clustering_info = CLUSTERING_METHODS[clustering_method]
@@ -312,8 +329,8 @@ def run_analysis(json_data, elo_threshold=None):
             f"{datetime.now().time()} running {clustering_method} parameter comparison...")
 
         if clustering_method == "dbscan":
-            min_samples_values = [5, 8, 10, 15]
-            epsilon_values = [0.3, 0.5, 0.7, 1.0]
+            min_samples_values = [10, 15, 20, 25]
+            epsilon_values = [1.0, 3.0, 5.0]
             clustering_info["compare_func"](
                 df_reduced, min_samples_values, epsilon_values, output_dir=clustering_dir)
 

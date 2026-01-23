@@ -29,6 +29,8 @@ from .spectral import (
 
 from .pacmap import apply_pacmap, plot_pacmap_parameters_grid, plot_pacmap_n_neighbors_grid
 
+from .trimap import apply_trimap, plot_trimap_parameters_grid, plot_trimap_n_random_grid
+
 __all__ = [
     # t-SNE
     "apply_tsne",
@@ -57,4 +59,8 @@ __all__ = [
     "apply_pacmap",
     "plot_pacmap_parameters_grid",
     "plot_pacmap_n_neighbors_grid",
+    # TriMap
+    "apply_trimap",
+    "plot_trimap_parameters_grid",
+    "plot_trimap_n_random_grid",
 ]
