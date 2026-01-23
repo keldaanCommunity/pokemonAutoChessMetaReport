@@ -43,6 +43,10 @@ from .dimensionality import (
     plot_nmf_init_comparison,
     plot_nmf_solver_comparison,
     plot_nmf_regularization_grid,
+    apply_autoencoder,
+    plot_autoencoder_parameters_grid,
+    plot_autoencoder_learning_rate_comparison,
+    plot_autoencoder_architecture_comparison,
 )
 from .clustering import (
     apply_clustering,
@@ -119,6 +123,12 @@ DIMENSIONALITY_METHODS = {
         "comparison_enabled": "SKIP_NMF_COMPARISON",
         "compare_func": plot_nmf_parameters_grid,
     },
+    "autoencoder": {
+        "apply": apply_autoencoder,
+        "default_params": {"hidden_dims": [128, 64, 32], "epochs": 200, "learning_rate": 0.01},
+        "comparison_enabled": "SKIP_AUTOENCODER_COMPARISON",
+        "compare_func": plot_autoencoder_parameters_grid,
+    },
 }
 
 # Clustering method registry
@@ -187,6 +197,7 @@ def run_analysis(json_data, elo_threshold=None):
         "pacmap": os.path.join(results_dir, "pacmap"),
         "trimap": os.path.join(results_dir, "trimap"),
         "nmf": os.path.join(results_dir, "nmf"),
+        "autoencoder": os.path.join(results_dir, "autoencoder"),
         "dbscan": os.path.join(results_dir, "dbscan"),
         "kmeans": os.path.join(results_dir, "kmeans"),
     }
@@ -335,6 +346,34 @@ def run_analysis(json_data, elo_threshold=None):
                 f"{datetime.now().time()} NMF: generating solver comparison plot...")
             plot_nmf_solver_comparison(
                 df_filtered, solver_values=solver_values, output_dir=method_dir)
+
+        elif dim_reduction_method == "autoencoder":
+            # Fine-tuned around optimal: arch=128x64x32, epochs=200, lr=0.01
+            # Test deeper/wider variations around the best architecture
+            hidden_dims_values = [[128, 64, 32], [
+                256, 128, 64], [128, 64, 32, 16]]
+            epochs_values = [150, 200, 250]
+            lr_values = [0.005, 0.01, 0.02]
+            arch_values = [[128, 64, 32], [256, 128, 64],
+                           [128, 96, 64, 32], [256, 128, 64, 32]]
+
+            # Plot 3x3 grid: architecture × epochs (fine-tuned)
+            print(
+                f"{datetime.now().time()} Autoencoder: generating 3x3 parameters grid (architecture × epochs)...")
+            plot_autoencoder_parameters_grid(df_filtered, hidden_dims_values=hidden_dims_values,
+                                             epochs_values=epochs_values, output_dir=method_dir)
+
+            # Plot learning rate comparison (fine-tuned around 0.01)
+            print(
+                f"{datetime.now().time()} Autoencoder: generating learning rate comparison plot...")
+            plot_autoencoder_learning_rate_comparison(
+                df_filtered, lr_values=lr_values, hidden_dims=[128, 64, 32], epochs=200, output_dir=method_dir)
+
+            # Plot architecture comparison (deeper architectures)
+            print(
+                f"{datetime.now().time()} Autoencoder: generating architecture comparison plot...")
+            plot_autoencoder_architecture_comparison(
+                df_filtered, arch_values=arch_values, epochs=200, output_dir=method_dir)
 
     # Apply clustering method
     clustering_info = CLUSTERING_METHODS[clustering_method]

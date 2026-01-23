@@ -5,6 +5,7 @@ umap-learn
 phate
 pacmap
 trimap
+torch
 pymongo[srv]
 python-dotenv
 requests

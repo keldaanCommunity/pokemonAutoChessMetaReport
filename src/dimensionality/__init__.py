@@ -33,6 +33,13 @@ from .trimap import apply_trimap, plot_trimap_parameters_grid, plot_trimap_n_ran
 
 from .nmf import apply_nmf, plot_nmf_parameters_grid, plot_nmf_init_comparison, plot_nmf_solver_comparison, plot_nmf_regularization_grid
 
+from .autoencoder import (
+    apply_autoencoder,
+    plot_autoencoder_parameters_grid,
+    plot_autoencoder_learning_rate_comparison,
+    plot_autoencoder_architecture_comparison,
+)
+
 __all__ = [
     # t-SNE
     "apply_tsne",
@@ -71,4 +78,9 @@ __all__ = [
     "plot_nmf_init_comparison",
     "plot_nmf_solver_comparison",
     "plot_nmf_regularization_grid",
+    # Autoencoder
+    "apply_autoencoder",
+    "plot_autoencoder_parameters_grid",
+    "plot_autoencoder_learning_rate_comparison",
+    "plot_autoencoder_architecture_comparison",
 ]
