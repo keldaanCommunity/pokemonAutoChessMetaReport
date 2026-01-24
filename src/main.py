@@ -55,6 +55,10 @@ from .clustering import (
     apply_kmeans_clustering,
     get_adaptive_k_clusters,
     plot_kmeans_parameters,
+    apply_hierarchical_clustering,
+    plot_hierarchical_parameters,
+    plot_dendrogram,
+    plot_annotated_dendrogram,
 )
 from .reporting import (
     get_meta_report,
@@ -64,6 +68,7 @@ from .reporting import (
     export_meta_report_json,
     visualize_meta_report,
     export_meta_report_mongodb,
+    export_dendrogram_mongodb,
 )
 
 
@@ -147,6 +152,12 @@ CLUSTERING_METHODS = {
         "comparison_enabled": "SKIP_KMEANS_COMPARISON",
         "compare_func": plot_kmeans_parameters,
     },
+    "hierarchical": {
+        "apply": apply_hierarchical_clustering,
+        "default_params": {"adaptive_n": 130, "linkage": "complete"},
+        "comparison_enabled": "SKIP_HIERARCHICAL_COMPARISON",
+        "compare_func": plot_hierarchical_parameters,
+    },
 }
 
 
@@ -200,6 +211,7 @@ def run_analysis(json_data, elo_threshold=None):
         "autoencoder": os.path.join(results_dir, "autoencoder"),
         "dbscan": os.path.join(results_dir, "dbscan"),
         "kmeans": os.path.join(results_dir, "kmeans"),
+        "hierarchical": os.path.join(results_dir, "hierarchical"),
     }
 
     # Parse environment variables
@@ -404,6 +416,28 @@ def run_analysis(json_data, elo_threshold=None):
             save=SAVE_PLOTS,
             output_dir=clustering_dir
         )
+    elif clustering_method == "hierarchical":
+        df_cluster = clustering_info["apply"](
+            df_reduced,
+            clustering_info["default_params"]["adaptive_n"],
+            linkage_method=clustering_info["default_params"]["linkage"],
+            save=SAVE_PLOTS,
+            output_dir=clustering_dir
+        )
+        # Generate dendrograms for interpretability
+        if SAVE_PLOTS:
+            # Basic dendrogram
+            plot_dendrogram(df_reduced,
+                            linkage_method=clustering_info["default_params"]["linkage"],
+                            output_dir=clustering_dir)
+            # Annotated dendrogram with synergy labels for each cluster
+            plot_annotated_dendrogram(
+                df_reduced,
+                df_filtered,  # Original synergy data
+                n_clusters=clustering_info["default_params"]["adaptive_n"],
+                linkage_method=clustering_info["default_params"]["linkage"],
+                output_dir=clustering_dir
+            )
 
     # Run parameter comparisons if enabled
     if not skip_clustering_comparison and clustering_info["compare_func"] is not None:
@@ -426,12 +460,38 @@ def run_analysis(json_data, elo_threshold=None):
             clustering_info["compare_func"](
                 df_reduced, k_values, output_dir=clustering_dir)
 
+        elif clustering_method == "hierarchical":
+            n_clusters_values = [70, 90, 110, 130]
+            linkage_values = ['ward', 'complete', 'average']
+            clustering_info["compare_func"](
+                df_reduced, n_clusters_values, linkage_values, output_dir=clustering_dir)
+            # Generate basic and annotated dendrograms for each linkage method
+            for link in linkage_values:
+                plot_dendrogram(df_reduced, linkage_method=link,
+                                output_dir=clustering_dir)
+                # Annotated dendrogram with synergy labels
+                plot_annotated_dendrogram(
+                    df_reduced,
+                    df_filtered,
+                    n_clusters=100,  # Standard comparison at 100 clusters
+                    linkage_method=link,
+                    output_dir=clustering_dir
+                )
+
     print(f"{datetime.now().time()} creating meta report...")
     # Build the final dataframe with all required columns
     df_concat = df_match.copy()
     df_concat["x"] = df_reduced["x"]
     df_concat["y"] = df_reduced["y"]
     df_concat["cluster_id"] = df_cluster["cluster_id"]
+
+    # Clean up clusters with less than 10 samples
+    print(f"{datetime.now().time()} cleaning up clusters with less than 10 samples...")
+    cluster_sizes = df_concat["cluster_id"].value_counts()
+    valid_clusters = cluster_sizes[cluster_sizes >= 10].index.tolist()
+    df_concat = df_concat[df_concat["cluster_id"].isin(valid_clusters)]
+    print(f"{datetime.now().time()} ({len(cluster_sizes) - len(valid_clusters)} small clusters deleted)")
+
     report = get_meta_report(df_concat)
 
     # Export reports: debug mode uses text/json/visualization files, prod uses MongoDB
@@ -443,6 +503,18 @@ def run_analysis(json_data, elo_threshold=None):
 
     print(f"{datetime.now().time()} exporting meta report to MongoDB...")
     export_meta_report_mongodb(report, DB_NAME)
+
+    # Export dendrogram to MongoDB if using hierarchical clustering
+    if clustering_method == "hierarchical":
+        print(f"{datetime.now().time()} exporting dendrogram to MongoDB...")
+        export_dendrogram_mongodb(
+            df_reduced,
+            df_filtered,
+            df_match,
+            n_clusters=clustering_info["default_params"]["adaptive_n"],
+            linkage_method=clustering_info["default_params"]["linkage"],
+            db_name=DB_NAME
+        )
 
     print(
         f"{datetime.now().time()} analysis complete for 1100+ tier! Results saved in: {results_dir}"

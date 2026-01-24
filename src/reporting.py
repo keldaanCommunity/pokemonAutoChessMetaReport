@@ -572,3 +572,254 @@ def export_meta_report_mongodb(meta_report, db_name):
 
     print(f"{datetime.now().time()} exported {len(reports_with_metadata)} clusters to meta-report-v2")
     client.close()
+
+
+def export_dendrogram_mongodb(df_2d, df_synergies, df_full, n_clusters, linkage_method, db_name):
+    """
+    Export dendrogram data to MongoDB for rendering in external applications.
+
+    Computes hierarchical clustering and exports the full linkage matrix,
+    cluster profiles with synergy characterization, branch profiles for
+    internal nodes, and dendrogram layout coordinates for visualization.
+
+    Args:
+        df_2d (pd.DataFrame): DataFrame with 'x' and 'y' columns (reduced coordinates)
+        df_synergies (pd.DataFrame): Original synergy features DataFrame
+        df_full (pd.DataFrame): Full original DataFrame with pokemons and items data
+        n_clusters (int): Number of leaf clusters
+        linkage_method (str): Linkage criterion ('ward', 'complete', 'average', 'single')
+        db_name (str): Name of the MongoDB database
+
+    Returns:
+        dict: The dendrogram document that was exported
+    """
+    from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
+    import numpy as np
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    print(f"{datetime.now().time()} Computing dendrogram for MongoDB export...")
+
+    # Compute linkage matrix on 2D coordinates
+    Z = linkage(df_2d[["x", "y"]].values, method=linkage_method)
+    n_samples = len(df_2d)
+
+    # Get cluster assignments for n_clusters
+    cluster_labels = fcluster(Z, n_clusters, criterion='maxclust')
+
+    from .utils import SYNERGY_TRIGGERS
+
+    # Build cluster profiles (leaf nodes)
+    cluster_profiles = []
+    for cluster_id in range(1, n_clusters + 1):
+        mask = cluster_labels == cluster_id
+        cluster_size = int(mask.sum())
+
+        if cluster_size > 0:
+            # Get mean synergies for this cluster
+            cluster_means = df_synergies[mask].mean()
+
+            # Calculate effective synergy levels (like get_meta_report)
+            synergy_activations = {}
+            for synergy_name, mean_value in cluster_means.items():
+                if mean_value > 0:
+                    thresholds = SYNERGY_TRIGGERS.get(synergy_name, [])
+                    if thresholds:
+                        effective_level = 0
+                        for threshold in thresholds:
+                            if mean_value >= threshold:
+                                effective_level = threshold
+                            else:
+                                break
+                        if effective_level > 0:
+                            synergy_activations[synergy_name] = effective_level
+
+            # Sort synergies by effective level (highest first) and take top 5
+            sorted_synergies = sorted(
+                synergy_activations.items(), key=lambda x: -x[1])[:5]
+
+            # Get original dataframe rows for this cluster to extract pokemons
+            cluster_indices = np.where(mask)[0]
+
+            # Calculate top 10 popular pokemons
+            pokemon_counts = {}
+            for idx in cluster_indices:
+                if idx < len(df_full) and 'pokemons' in df_full.columns:
+                    pokemons_list = df_full.iloc[idx].get('pokemons', [])
+                    if pokemons_list:
+                        for pokemon_entry in pokemons_list:
+                            if isinstance(pokemon_entry, dict):
+                                pokemon_name = pokemon_entry.get('name')
+                            else:
+                                pokemon_name = pokemon_entry
+                            if pokemon_name:
+                                pokemon_counts[pokemon_name] = pokemon_counts.get(
+                                    pokemon_name, 0) + 1
+
+            # Sort by count and get top 10 with frequency
+            sorted_pokemons = sorted(
+                pokemon_counts.items(), key=lambda x: -x[1])[:10]
+            top_pokemons = [
+                {'name': name, 'frequency': round(count / cluster_size, 3)}
+                for name, count in sorted_pokemons
+            ]
+
+            profile = {
+                'cluster_id': cluster_id,
+                'size': cluster_size,
+                'synergies': {syn: level for syn, level in sorted_synergies},
+                'top_pokemons': top_pokemons
+            }
+            cluster_profiles.append(profile)
+
+    # Generate dendrogram to get layout coordinates
+    fig, ax = plt.subplots(figsize=[1, 1])
+    dendro_data = dendrogram(
+        Z,
+        ax=ax,
+        truncate_mode='lastp',
+        p=n_clusters,
+        no_plot=False,
+        get_leaves=True
+    )
+    plt.close(fig)
+
+    # Helper function to get all leaf indices under a node
+    def get_leaves_for_node(node_idx, Z, n_samples):
+        """Recursively get all original sample indices under a node."""
+        if node_idx < n_samples:
+            return [int(node_idx)]
+        else:
+            merge_idx = int(node_idx - n_samples)
+            left = int(Z[merge_idx, 0])
+            right = int(Z[merge_idx, 1])
+            return get_leaves_for_node(left, Z, n_samples) + get_leaves_for_node(right, Z, n_samples)
+
+    # Build branch profiles (internal nodes)
+    branch_profiles = []
+    icoord_list = dendro_data.get('icoord', [])
+    dcoord_list = dendro_data.get('dcoord', [])
+
+    for branch_idx, (icoord, dcoord) in enumerate(zip(icoord_list, dcoord_list)):
+        merge_height = dcoord[1]  # Height of the merge (top of U)
+
+        # Find which merge this corresponds to by height
+        height_matches = np.where(np.isclose(
+            Z[:, 2], merge_height, rtol=1e-9))[0]
+
+        if len(height_matches) > 0:
+            merge_idx = int(height_matches[0])
+            node_idx = n_samples + merge_idx
+
+            # Get all original sample indices under this branch
+            sample_indices = get_leaves_for_node(node_idx, Z, n_samples)
+            total_size = len(sample_indices)
+
+            # Get cluster IDs for these samples
+            leaf_cluster_ids = sorted(
+                list(set(cluster_labels[sample_indices])))
+
+            # Compute synergy profile for this branch - get synergy with highest mean value
+            branch_data = df_synergies.iloc[sample_indices]
+            branch_means = branch_data.mean()
+
+            # Find synergy with highest mean value
+            dominant_synergy = None
+            max_value = 0
+            for synergy_name, mean_value in branch_means.items():
+                if mean_value > max_value:
+                    max_value = mean_value
+                    dominant_synergy = synergy_name
+
+            # Count pokemons in this branch and get top 5 most used
+            pokemon_counts = {}
+            for idx in sample_indices:
+                if idx < len(df_full) and 'pokemons' in df_full.columns:
+                    pokemons_list = df_full.iloc[idx].get('pokemons', [])
+                    if pokemons_list:
+                        for pokemon_entry in pokemons_list:
+                            if isinstance(pokemon_entry, dict):
+                                pokemon_name = pokemon_entry.get('name')
+                            else:
+                                pokemon_name = pokemon_entry
+                            if pokemon_name:
+                                pokemon_counts[pokemon_name] = pokemon_counts.get(
+                                    pokemon_name, 0) + 1
+
+            # Sort by count and get top 5
+            sorted_pokemons = sorted(
+                pokemon_counts.items(), key=lambda x: -x[1])[:5]
+            top_pokemons = [
+                {'name': name, 'count': count}
+                for name, count in sorted_pokemons
+            ]
+
+            branch_profile = {
+                'branch_index': branch_idx,
+                'merge_index': merge_idx,
+                'merge_height': float(merge_height),
+                'total_size': total_size,
+                'leaf_cluster_ids': [int(c) for c in leaf_cluster_ids],
+                'synergy': dominant_synergy,
+                'top_pokemons': top_pokemons
+            }
+            branch_profiles.append(branch_profile)
+
+    # Build leaf to cluster mapping
+    # dendro_data['leaves'] gives the order of leaves as displayed
+    leaves = [int(x) for x in dendro_data.get('leaves', [])]
+
+    # Map from visual leaf position to cluster_id
+    # When truncated, leaves can be cluster indices or (n_samples + merge_index)
+    leaf_to_cluster = []
+    for leaf in leaves:
+        if leaf < n_samples:
+            # This is an original sample
+            leaf_to_cluster.append(int(cluster_labels[leaf]))
+        else:
+            # This represents a merged cluster - get any of its original samples
+            sample_indices = get_leaves_for_node(leaf, Z, n_samples)
+            if sample_indices:
+                leaf_to_cluster.append(int(cluster_labels[sample_indices[0]]))
+
+    # Convert linkage matrix to list of node objects
+    linkage_matrix = []
+    for row in Z:
+        linkage_matrix.append({
+            'cluster1': int(row[0]),
+            'cluster2': int(row[1]),
+            'distance': float(row[2]),
+            'count': int(row[3])
+        })
+
+    # Build the dendrogram document
+    dendrogram_doc = {
+        'linkage_method': linkage_method,
+        'n_clusters': n_clusters,
+        'n_samples': n_samples,
+        'linkage_matrix': linkage_matrix,
+        'cluster_profiles': cluster_profiles,
+        'branch_profiles': branch_profiles,
+        'leaves': leaves,
+        'leaf_to_cluster': leaf_to_cluster,
+        'icoord': [[float(x) for x in coord] for coord in icoord_list],
+        'dcoord': [[float(x) for x in coord] for coord in dcoord_list],
+        'generated_at': datetime.now().isoformat()
+    }
+
+    # Export to MongoDB
+    uri = os.getenv("MONGO_URI")
+    client = MongoClient(uri)
+    db = client[db_name]
+
+    collection = db["dendrogram"]
+
+    # Clear existing data and insert new dendrogram
+    collection.delete_many({})
+    collection.insert_one(dendrogram_doc)
+
+    print(f"{datetime.now().time()} exported dendrogram ({n_clusters} clusters, {len(branch_profiles)} branches, {linkage_method}) to MongoDB")
+    client.close()
+
+    return dendrogram_doc

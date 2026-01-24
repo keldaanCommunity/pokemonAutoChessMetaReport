@@ -29,5 +29,5 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           DATABASE_ENV: prod
           DIMENSIONALITY_METHOD: tsne
-          CLUSTERING_METHOD: dbscan
+          CLUSTERING_METHOD: hierarchical
         run: python -m src.main
