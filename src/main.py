@@ -547,7 +547,10 @@ def main():
 
     print(f"{datetime.now().time()} creating region data...")
     regions = create_region_data(json_data)
-    export_data_mongodb(regions, DB_NAME, "regions-statistic")
+    if regions:
+        export_data_mongodb(regions, DB_NAME, "regions-statistic")
+    else:
+        print(f"{datetime.now().time()} warning: no region data to export")
 
     # Define ELO tier to analyze (1100+ only)
     elo_threshold = 1100
