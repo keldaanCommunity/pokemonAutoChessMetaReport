@@ -10,15 +10,15 @@ from .utils import LIST_POKEMON, ITEM, DB_NAME, SYNERGY_TRIGGERS
 def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
     """
     Load match data from MongoDB database with optimizations for large datasets.
-    
+
     Uses MongoDB projection to fetch only required fields and ensures index exists 
     on 'time' field for fast filtering. Sorts results by time descending.
-    
+
     Args:
         time_limit (int): Timestamp in milliseconds; only loads matches with time > time_limit
         db_name (str): Name of the MongoDB database to connect to (default: DB_NAME from utils)
         limit (int): Maximum number of documents to retrieve; None for no limit (default: None)
-    
+
     Returns:
         list: List of match documents from MongoDB
     """
@@ -26,13 +26,13 @@ def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
     client = MongoClient(uri)
     db = client[db_name]
     collection = db['detailledstatisticv2']
-    
+
     # Ensure index exists on 'time' field for fast filtering
     try:
         collection.create_index("time")
     except:
         pass  # Index may already exist
-    
+
     # Use projection to fetch only required fields for better performance
     projection = {
         "rank": 1,
@@ -43,8 +43,9 @@ def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
         "elo": 1,
         "time": 1
     }
-    
-    cursor = collection.find({"time": {"$gt": time_limit}}, projection=projection).sort("time", -1)
+
+    cursor = collection.find(
+        {"time": {"$gt": time_limit}}, projection=projection).sort("time", -1)
     if limit:
         cursor = cursor.limit(limit)
     result = list(cursor)
@@ -55,14 +56,14 @@ def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
 def create_dataframe(json_data):
     """
     Convert match JSON data to DataFrame with synergies capped at activation levels.
-    
+
     For each synergy, stores the highest trigger threshold it meets or exceeds.
     For example, FIRE [2,4,6,8] with count=7 → stored as 6 (highest threshold met).
     This captures synergy activation tiers without feature explosion.
-    
+
     Args:
         json_data (list): List of match documents from MongoDB, each containing rank, nbplayers, synergies, and pokemons
-    
+
     Returns:
         pd.DataFrame: DataFrame where each row is a match with synergy activation levels and Pokemon list
     """
@@ -73,7 +74,7 @@ def create_dataframe(json_data):
         match["rank"] = data["rank"]
         match["nbplayers"] = data["nbplayers"] if "nbplayers" in data else 8
         match["elo"] = data.get("elo", 0)
-        
+
         # Extract Pokemon data (keep full objects with items for later analysis)
         pokemons_with_items = []
         match_items = []  # All items from all Pokemon in this match
@@ -94,20 +95,20 @@ def create_dataframe(json_data):
                         "name": pokemon,
                         "items": []
                     })
-        
+
         match["pokemons"] = pokemons_with_items
         match["items"] = match_items
-        
+
         # If no items found in Pokemon objects, try match-level items
         if not match_items and "items" in data and isinstance(data["items"], list):
             match["items"] = data["items"]
-        
+
         # Use pre-computed synergies from the database
         # For each synergy, store the highest trigger threshold it meets
         if "synergies" in data and data["synergies"]:
             for synergy, count in data["synergies"].items():
                 synergy_lower = synergy.lower()
-                
+
                 # Get trigger thresholds for this synergy
                 thresholds = SYNERGY_TRIGGERS.get(synergy_lower)
                 if thresholds:
@@ -118,26 +119,27 @@ def create_dataframe(json_data):
                             effective_level = threshold
                         else:
                             break  # Thresholds are in ascending order
-                    
+
                     # Store the effective level (highest threshold met)
                     match[synergy_lower] = effective_level
-        
+
         list_match.append(match)
 
     dataframe = pd.DataFrame(list_match)
     dataframe.fillna(0, inplace=True)
     return dataframe
 
+
 def create_item_data_elo_threshold(json_data):
     """
     Generate item statistics filtered by ELO rating thresholds.
-    
+
     Groups items by ELO tier and calculates usage statistics for each item at that tier.
     For each item, tracks: appearance count, average rank, and top 3 Pokemon that carry it.
-    
+
     Args:
         json_data (list): List of match documents with Pokemon items and ELO ratings
-    
+
     Returns:
         dict_values: Collection of tier dictionaries, each containing tier name and items statistics
     """
@@ -173,15 +175,17 @@ def create_item_data_elo_threshold(json_data):
         elo_threshold = thresholds[threshold]
         item_stats = {}
         for item in ITEM:
-            item_stats[item] = {"pokemons": {}, "rank": 0, "count": 1, "name": item}
+            item_stats[item] = {"pokemons": {},
+                                "rank": 0, "count": 1, "name": item}
         for match in json_data:
             nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
             if match["elo"] >= elo_threshold:
                 for pokemon in match["pokemons"]:
                     for item in pokemon["items"]:
-                        if item not in ["CHOICE_SCARF", "LUCKY_EGG", "ROTOM_PHONE", "FLUFFY_TAIL", "TOXIC_ORB"]:
+                        if item not in ["HARD_STONE", "TINY_MUSHROOM"]:
                             item_stats[item]["count"] += 1
-                            item_stats[item]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+                            item_stats[item]["rank"] += 1 + \
+                                (match["rank"] - 1) * 7 / (nbPlayers - 1)
                             name = pokemon["name"]
                             if name in item_stats[item]["pokemons"]:
                                 item_stats[item]["pokemons"][name] += 1
@@ -193,7 +197,8 @@ def create_item_data_elo_threshold(json_data):
                 item_stats[item]["rank"] / item_stats[item]["count"], 2)
             item_stats[item]["pokemons"] = dict(
                 sorted(item_stats[item]["pokemons"].items(), key=lambda x: x[1], reverse=True))
-            item_stats[item]["pokemons"] = list(item_stats[item]["pokemons"])[:3]
+            item_stats[item]["pokemons"] = list(
+                item_stats[item]["pokemons"])[:3]
         elo_threshold_stats[threshold]["items"] = item_stats
 
     return elo_threshold_stats.values()
@@ -202,13 +207,13 @@ def create_item_data_elo_threshold(json_data):
 def create_pokemon_data(json_data):
     """
     Generate Pokemon statistics from match data.
-    
+
     Calculates per-Pokemon statistics including: appearance count, average rank, 
     average item count per appearance, and top 3 most common items.
-    
+
     Args:
         json_data (list): List of match documents with Pokemon data
-    
+
     Returns:
         dict_values: Collection of Pokemon stat dictionaries for each Pokemon in the game
     """
@@ -221,7 +226,8 @@ def create_pokemon_data(json_data):
         nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
         for pokemon in match["pokemons"]:
             name = pokemon["name"]
-            pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+            pokemon_stats[name]["rank"] += 1 + \
+                (match["rank"] - 1) * 7 / (nbPlayers - 1)
             pokemon_stats[name]["item_count"] += len(pokemon["items"])
             pokemon_stats[name]["count"] += 1
             for item in pokemon["items"]:
@@ -249,13 +255,13 @@ def create_pokemon_data(json_data):
 def create_pokemon_data_elo_threshold(json_data):
     """
     Generate Pokemon statistics filtered by ELO rating thresholds.
-    
+
     Groups Pokemon stats by ELO tier. For each tier, calculates per-Pokemon statistics 
     including: appearance count, average rank, average item count, and top 3 items.
-    
+
     Args:
         json_data (list): List of match documents with Pokemon data and ELO ratings
-    
+
     Returns:
         dict_values: Collection of tier dictionaries, each containing tier name and Pokemon statistics
     """
@@ -292,7 +298,7 @@ def create_pokemon_data_elo_threshold(json_data):
         pokemon_stats = {}
         for pokemon in LIST_POKEMON:
             pokemon_stats[pokemon] = {"items": {},
-                                    "rank": 0, "count": 0, "name": pokemon, "item_count": 0}
+                                      "rank": 0, "count": 0, "name": pokemon, "item_count": 0}
 
         for match in json_data:
             nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
@@ -303,7 +309,8 @@ def create_pokemon_data_elo_threshold(json_data):
                         name = "DEERLING_AUTUMN"
                     if pokemon["name"] == "SAWSBUCK":
                         name = "SAWSBUCK_AUTUMN"
-                    pokemon_stats[name]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+                    pokemon_stats[name]["rank"] += 1 + \
+                        (match["rank"] - 1) * 7 / (nbPlayers - 1)
                     pokemon_stats[name]["item_count"] += len(pokemon["items"])
                     pokemon_stats[name]["count"] += 1
                     for item in pokemon["items"]:
@@ -332,13 +339,13 @@ def create_pokemon_data_elo_threshold(json_data):
 def create_region_data(json_data):
     """
     Generate region statistics from match data.
-    
+
     Calculates per-region statistics including: appearance count, average rank, 
     average ELO, and top 3 most common Pokemon in that region.
-    
+
     Args:
         json_data (list): List of match documents with region information
-    
+
     Returns:
         dict_values: Collection of region stat dictionaries for each region in the data
     """
@@ -363,7 +370,8 @@ def create_region_data(json_data):
         if "regions" in match:
             for region in match["regions"]:
                 region_stats[region]["count"] += 1
-                region_stats[region]["rank"] += 1 + (match["rank"] - 1) * 7 / (nbPlayers - 1)
+                region_stats[region]["rank"] += 1 + \
+                    (match["rank"] - 1) * 7 / (nbPlayers - 1)
                 region_stats[region]["elo"] += match["elo"]
 
                 # Track pokemons with this region

@@ -545,9 +545,9 @@ def main():
     pokemons = create_pokemon_data_elo_threshold(json_data)
     export_data_mongodb(pokemons, DB_NAME, "pokemons-statistic-v2")
 
-    # print(f"{datetime.now().time()} creating region data...")
-    # regions = create_region_data(json_data)
-    # export_data_mongodb(regions, DB_NAME, "regions-statistic")
+    print(f"{datetime.now().time()} creating region data...")
+    regions = create_region_data(json_data)
+    export_data_mongodb(regions, DB_NAME, "regions-statistic")
 
     # Define ELO tier to analyze (1100+ only)
     elo_threshold = 1100
