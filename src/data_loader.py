@@ -41,7 +41,8 @@ def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
         "pokemons": 1,
         "items": 1,
         "elo": 1,
-        "time": 1
+        "time": 1,
+        "regions": 1
     }
 
     cursor = collection.find(
