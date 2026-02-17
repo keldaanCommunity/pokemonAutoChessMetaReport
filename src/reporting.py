@@ -299,6 +299,227 @@ def export_data_mongodb(list_data, db_name, collection_name):
     client.close()
 
 
+def export_pokemon_data_with_history_mongodb(list_data, db_name, collection_name, max_history=15):
+    """
+    Export Pokemon statistics to MongoDB with history tracking.
+
+    Updates existing documents by appending current metrics to history arrays.
+    Maintains a rolling window of the last `max_history` entries per Pokemon.
+    If document doesn't exist, creates it with empty history.
+
+    Args:
+        list_data (list): List of tier documents, each containing tier name, timestamp, and Pokemon stats
+        db_name (str): Name of the MongoDB database
+        collection_name (str): Name of the collection to export to
+        max_history (int): Maximum number of history entries to keep per Pokemon (default: 15)
+
+    Returns:
+        None: Data is written directly to MongoDB
+    """
+    uri = os.getenv("MONGO_URI")
+    client = MongoClient(uri)
+    db = client[db_name]
+    collection = db[collection_name]
+
+    for tier_data in list_data:
+        tier_name = tier_data["tier"]
+        timestamp = tier_data["timestamp"]
+        pokemons_data = tier_data["pokemons"]
+
+        # Check if tier document exists
+        existing_doc = collection.find_one({"tier": tier_name})
+
+        if existing_doc is None:
+            # Create new document with empty history for each Pokemon
+            new_doc = {
+                "tier": tier_name,
+                "pokemons": {}
+            }
+
+            for pokemon_name, pokemon_stats in pokemons_data.items():
+                new_doc["pokemons"][pokemon_name] = {
+                    "name": pokemon_stats["name"],
+                    "rank": pokemon_stats["rank"],
+                    "count": pokemon_stats["count"],
+                    "item_count": pokemon_stats["item_count"],
+                    "items": pokemon_stats["items"],
+                    "rank_history": [{"date": timestamp, "value": pokemon_stats["rank"]}],
+                    "count_history": [{"date": timestamp, "value": pokemon_stats["count"]}],
+                    "item_count_history": [{"date": timestamp, "value": pokemon_stats["item_count"]}]
+                }
+
+            collection.insert_one(new_doc)
+        else:
+            # Update existing document with new data and append to history
+            existing_pokemons = existing_doc.get("pokemons", {})
+
+            for pokemon_name, pokemon_stats in pokemons_data.items():
+                if pokemon_name in existing_pokemons:
+                    # Pokemon exists - append to history and update current values
+                    existing_pokemon = existing_pokemons[pokemon_name]
+
+                    # Get existing history or create empty lists
+                    rank_history = existing_pokemon.get("rank_history", [])
+                    count_history = existing_pokemon.get("count_history", [])
+                    item_count_history = existing_pokemon.get(
+                        "item_count_history", [])
+
+                    # Append new values to history
+                    rank_history.append(
+                        {"date": timestamp, "value": pokemon_stats["rank"]})
+                    count_history.append(
+                        {"date": timestamp, "value": pokemon_stats["count"]})
+                    item_count_history.append(
+                        {"date": timestamp, "value": pokemon_stats["item_count"]})
+
+                    # Keep only last max_history entries
+                    rank_history = rank_history[-max_history:]
+                    count_history = count_history[-max_history:]
+                    item_count_history = item_count_history[-max_history:]
+
+                    # Update the Pokemon data
+                    collection.update_one(
+                        {"tier": tier_name},
+                        {
+                            "$set": {
+                                f"pokemons.{pokemon_name}.rank": pokemon_stats["rank"],
+                                f"pokemons.{pokemon_name}.count": pokemon_stats["count"],
+                                f"pokemons.{pokemon_name}.item_count": pokemon_stats["item_count"],
+                                f"pokemons.{pokemon_name}.items": pokemon_stats["items"],
+                                f"pokemons.{pokemon_name}.rank_history": rank_history,
+                                f"pokemons.{pokemon_name}.count_history": count_history,
+                                f"pokemons.{pokemon_name}.item_count_history": item_count_history
+                            }
+                        }
+                    )
+                else:
+                    # New Pokemon - add with initial history entry
+                    collection.update_one(
+                        {"tier": tier_name},
+                        {
+                            "$set": {
+                                f"pokemons.{pokemon_name}": {
+                                    "name": pokemon_stats["name"],
+                                    "rank": pokemon_stats["rank"],
+                                    "count": pokemon_stats["count"],
+                                    "item_count": pokemon_stats["item_count"],
+                                    "items": pokemon_stats["items"],
+                                    "rank_history": [{"date": timestamp, "value": pokemon_stats["rank"]}],
+                                    "count_history": [{"date": timestamp, "value": pokemon_stats["count"]}],
+                                    "item_count_history": [{"date": timestamp, "value": pokemon_stats["item_count"]}]
+                                }
+                            }
+                        }
+                    )
+
+    client.close()
+
+
+def export_item_data_with_history_mongodb(list_data, db_name, collection_name, max_history=15):
+    """
+    Export item statistics to MongoDB with history tracking.
+
+    Updates existing documents by appending current metrics to history arrays.
+    Maintains a rolling window of the last `max_history` entries per item.
+    If document doesn't exist, creates it with empty history.
+
+    Args:
+        list_data (list): List of tier documents, each containing tier name, timestamp, and item stats
+        db_name (str): Name of the MongoDB database
+        collection_name (str): Name of the collection to export to
+        max_history (int): Maximum number of history entries to keep per item (default: 15)
+
+    Returns:
+        None: Data is written directly to MongoDB
+    """
+    uri = os.getenv("MONGO_URI")
+    client = MongoClient(uri)
+    db = client[db_name]
+    collection = db[collection_name]
+
+    for tier_data in list_data:
+        tier_name = tier_data["tier"]
+        timestamp = tier_data["timestamp"]
+        items_data = tier_data["items"]
+
+        # Check if tier document exists
+        existing_doc = collection.find_one({"tier": tier_name})
+
+        if existing_doc is None:
+            # Create new document with empty history for each item
+            new_doc = {
+                "tier": tier_name,
+                "items": {}
+            }
+
+            for item_name, item_stats in items_data.items():
+                new_doc["items"][item_name] = {
+                    "name": item_stats["name"],
+                    "rank": item_stats["rank"],
+                    "count": item_stats["count"],
+                    "pokemons": item_stats["pokemons"],
+                    "rank_history": [{"date": timestamp, "value": item_stats["rank"]}],
+                    "count_history": [{"date": timestamp, "value": item_stats["count"]}]
+                }
+
+            collection.insert_one(new_doc)
+        else:
+            # Update existing document with new data and append to history
+            existing_items = existing_doc.get("items", {})
+
+            for item_name, item_stats in items_data.items():
+                if item_name in existing_items:
+                    # Item exists - append to history and update current values
+                    existing_item = existing_items[item_name]
+
+                    # Get existing history or create empty lists
+                    rank_history = existing_item.get("rank_history", [])
+                    count_history = existing_item.get("count_history", [])
+
+                    # Append new values to history
+                    rank_history.append(
+                        {"date": timestamp, "value": item_stats["rank"]})
+                    count_history.append(
+                        {"date": timestamp, "value": item_stats["count"]})
+
+                    # Keep only last max_history entries
+                    rank_history = rank_history[-max_history:]
+                    count_history = count_history[-max_history:]
+
+                    # Update the item data
+                    collection.update_one(
+                        {"tier": tier_name},
+                        {
+                            "$set": {
+                                f"items.{item_name}.rank": item_stats["rank"],
+                                f"items.{item_name}.count": item_stats["count"],
+                                f"items.{item_name}.pokemons": item_stats["pokemons"],
+                                f"items.{item_name}.rank_history": rank_history,
+                                f"items.{item_name}.count_history": count_history
+                            }
+                        }
+                    )
+                else:
+                    # New item - add with initial history entry
+                    collection.update_one(
+                        {"tier": tier_name},
+                        {
+                            "$set": {
+                                f"items.{item_name}": {
+                                    "name": item_stats["name"],
+                                    "rank": item_stats["rank"],
+                                    "count": item_stats["count"],
+                                    "pokemons": item_stats["pokemons"],
+                                    "rank_history": [{"date": timestamp, "value": item_stats["rank"]}],
+                                    "count_history": [{"date": timestamp, "value": item_stats["count"]}]
+                                }
+                            }
+                        }
+                    )
+
+    client.close()
+
+
 def export_meta_report_text(meta_report, output_dir):
     """
     Export meta report as a human-readable text file.

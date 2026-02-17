@@ -64,6 +64,8 @@ from .reporting import (
     get_meta_report,
     create_metadata,
     export_data_mongodb,
+    export_pokemon_data_with_history_mongodb,
+    export_item_data_with_history_mongodb,
     export_meta_report_text,
     export_meta_report_json,
     visualize_meta_report,
@@ -539,11 +541,12 @@ def main():
 
     print(f"{datetime.now().time()} creating item data with threshold...")
     items = create_item_data_elo_threshold(json_data)
-    export_data_mongodb(items, DB_NAME, "items-statistic-v2")
+    export_item_data_with_history_mongodb(items, DB_NAME, "items-statistic-v2")
 
     print(f"{datetime.now().time()} creating pokemon data with threshold...")
     pokemons = create_pokemon_data_elo_threshold(json_data)
-    export_data_mongodb(pokemons, DB_NAME, "pokemons-statistic-v2")
+    export_pokemon_data_with_history_mongodb(
+        pokemons, DB_NAME, "pokemons-statistic-v2")
 
     print(f"{datetime.now().time()} creating region data...")
     regions = create_region_data(json_data)

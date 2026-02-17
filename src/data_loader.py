@@ -137,25 +137,29 @@ def create_item_data_elo_threshold(json_data):
 
     Groups items by ELO tier and calculates usage statistics for each item at that tier.
     For each item, tracks: appearance count, average rank, and top 3 Pokemon that carry it.
+    Includes timestamp for history tracking.
 
     Args:
         json_data (list): List of match documents with Pokemon items and ELO ratings
 
     Returns:
-        dict_values: Collection of tier dictionaries, each containing tier name and items statistics
+        dict_values: Collection of tier dictionaries, each containing tier name, timestamp, and items statistics
     """
+    # Get current timestamp for this generation
+    current_timestamp = datetime.now().isoformat()
+
     elo_threshold_stats = {
-        "LEVEL_BALL": {"tier": "LEVEL_BALL", "items": {}},
-        "NET_BALL": {"tier": "NET_BALL", "items": {}},
-        "SAFARI_BALL": {"tier": "SAFARI_BALL", "items": {}},
-        "LOVE_BALL": {"tier": "LOVE_BALL", "items": {}},
-        "PREMIER_BALL": {"tier": "PREMIER_BALL", "items": {}},
-        "QUICK_BALL": {"tier": "QUICK_BALL", "items": {}},
-        "POKE_BALL": {"tier": "POKE_BALL", "items": {}},
-        "SUPER_BALL": {"tier": "SUPER_BALL", "items": {}},
-        "ULTRA_BALL": {"tier": "ULTRA_BALL", "items": {}},
-        "MASTER_BALL": {"tier": "MASTER_BALL", "items": {}},
-        "BEAST_BALL": {"tier": "BEAST_BALL", "items": {}},
+        "LEVEL_BALL": {"tier": "LEVEL_BALL", "timestamp": current_timestamp, "items": {}},
+        "NET_BALL": {"tier": "NET_BALL", "timestamp": current_timestamp, "items": {}},
+        "SAFARI_BALL": {"tier": "SAFARI_BALL", "timestamp": current_timestamp, "items": {}},
+        "LOVE_BALL": {"tier": "LOVE_BALL", "timestamp": current_timestamp, "items": {}},
+        "PREMIER_BALL": {"tier": "PREMIER_BALL", "timestamp": current_timestamp, "items": {}},
+        "QUICK_BALL": {"tier": "QUICK_BALL", "timestamp": current_timestamp, "items": {}},
+        "POKE_BALL": {"tier": "POKE_BALL", "timestamp": current_timestamp, "items": {}},
+        "SUPER_BALL": {"tier": "SUPER_BALL", "timestamp": current_timestamp, "items": {}},
+        "ULTRA_BALL": {"tier": "ULTRA_BALL", "timestamp": current_timestamp, "items": {}},
+        "MASTER_BALL": {"tier": "MASTER_BALL", "timestamp": current_timestamp, "items": {}},
+        "BEAST_BALL": {"tier": "BEAST_BALL", "timestamp": current_timestamp, "items": {}},
     }
 
     thresholds = {
@@ -205,79 +209,35 @@ def create_item_data_elo_threshold(json_data):
     return elo_threshold_stats.values()
 
 
-def create_pokemon_data(json_data):
-    """
-    Generate Pokemon statistics from match data.
-
-    Calculates per-Pokemon statistics including: appearance count, average rank, 
-    average item count per appearance, and top 3 most common items.
-
-    Args:
-        json_data (list): List of match documents with Pokemon data
-
-    Returns:
-        dict_values: Collection of Pokemon stat dictionaries for each Pokemon in the game
-    """
-    pokemon_stats = {}
-    for pokemon in LIST_POKEMON:
-        pokemon_stats[pokemon] = {"items": {},
-                                  "rank": 0, "count": 0, "name": pokemon, "item_count": 0}
-
-    for match in json_data:
-        nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
-        for pokemon in match["pokemons"]:
-            name = pokemon["name"]
-            pokemon_stats[name]["rank"] += 1 + \
-                (match["rank"] - 1) * 7 / (nbPlayers - 1)
-            pokemon_stats[name]["item_count"] += len(pokemon["items"])
-            pokemon_stats[name]["count"] += 1
-            for item in pokemon["items"]:
-                if item in pokemon_stats[name]["items"]:
-                    pokemon_stats[name]["items"][item] += 1
-                else:
-                    pokemon_stats[name]["items"][item] = 1
-
-    for pokemon in pokemon_stats:
-        if pokemon_stats[pokemon]["count"] == 0:
-            pokemon_stats[pokemon]["rank"] = 9
-        else:
-            pokemon_stats[pokemon]["rank"] = round(
-                pokemon_stats[pokemon]["rank"] / pokemon_stats[pokemon]["count"], 2)
-            pokemon_stats[pokemon]["item_count"] = round(
-                pokemon_stats[pokemon]["item_count"] / pokemon_stats[pokemon]["count"], 2)
-        pokemon_stats[pokemon]["items"] = dict(sorted(
-            pokemon_stats[pokemon]["items"].items(), key=lambda x: x[1], reverse=True))
-        pokemon_stats[pokemon]["items"] = list(
-            pokemon_stats[pokemon]["items"])[:3]
-
-    return pokemon_stats.values()
-
-
 def create_pokemon_data_elo_threshold(json_data):
     """
     Generate Pokemon statistics filtered by ELO rating thresholds.
 
     Groups Pokemon stats by ELO tier. For each tier, calculates per-Pokemon statistics 
     including: appearance count, average rank, average item count, and top 3 items.
+    Includes timestamp for history tracking.
 
     Args:
         json_data (list): List of match documents with Pokemon data and ELO ratings
 
     Returns:
-        dict_values: Collection of tier dictionaries, each containing tier name and Pokemon statistics
+        dict_values: Collection of tier dictionaries, each containing tier name, timestamp, and Pokemon statistics
     """
+    # Get current timestamp for this generation
+    current_timestamp = datetime.now().isoformat()
+
     elo_threshold_stats = {
-        "LEVEL_BALL": {"tier": "LEVEL_BALL", "pokemons": {}},
-        "NET_BALL": {"tier": "NET_BALL", "pokemons": {}},
-        "SAFARI_BALL": {"tier": "SAFARI_BALL", "pokemons": {}},
-        "LOVE_BALL": {"tier": "LOVE_BALL", "pokemons": {}},
-        "PREMIER_BALL": {"tier": "PREMIER_BALL", "pokemons": {}},
-        "QUICK_BALL": {"tier": "QUICK_BALL", "pokemons": {}},
-        "POKE_BALL": {"tier": "POKE_BALL", "pokemons": {}},
-        "SUPER_BALL": {"tier": "SUPER_BALL", "pokemons": {}},
-        "ULTRA_BALL": {"tier": "ULTRA_BALL", "pokemons": {}},
-        "MASTER_BALL": {"tier": "MASTER_BALL", "pokemons": {}},
-        "BEAST_BALL": {"tier": "BEAST_BALL", "pokemons": {}},
+        "LEVEL_BALL": {"tier": "LEVEL_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "NET_BALL": {"tier": "NET_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "SAFARI_BALL": {"tier": "SAFARI_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "LOVE_BALL": {"tier": "LOVE_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "PREMIER_BALL": {"tier": "PREMIER_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "QUICK_BALL": {"tier": "QUICK_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "POKE_BALL": {"tier": "POKE_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "SUPER_BALL": {"tier": "SUPER_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "ULTRA_BALL": {"tier": "ULTRA_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "MASTER_BALL": {"tier": "MASTER_BALL", "timestamp": current_timestamp, "pokemons": {}},
+        "BEAST_BALL": {"tier": "BEAST_BALL", "timestamp": current_timestamp, "pokemons": {}},
     }
 
     thresholds = {
@@ -306,10 +266,6 @@ def create_pokemon_data_elo_threshold(json_data):
             if match["elo"] >= elo_threshold:
                 for pokemon in match["pokemons"]:
                     name = pokemon["name"]
-                    if pokemon["name"] == "DEERLING":
-                        name = "DEERLING_AUTUMN"
-                    if pokemon["name"] == "SAWSBUCK":
-                        name = "SAWSBUCK_AUTUMN"
                     pokemon_stats[name]["rank"] += 1 + \
                         (match["rank"] - 1) * 7 / (nbPlayers - 1)
                     pokemon_stats[name]["item_count"] += len(pokemon["items"])
