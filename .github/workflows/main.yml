@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: checkout repo content
         uses: actions/checkout@v4 # checkout the repository content to github runner
@@ -17,7 +18,7 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14" # install the python version needed
+          python-version: "3.13" # install the python version needed
 
       - name: install python packages
         run: |
