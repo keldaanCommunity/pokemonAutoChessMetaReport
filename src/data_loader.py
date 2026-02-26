@@ -139,6 +139,9 @@ def create_item_data_elo_threshold(json_data):
     For each item, tracks: appearance count, average rank, and top 3 Pokemon that carry it.
     Includes timestamp for history tracking.
 
+    Uses a single pass through the data to update all tiers simultaneously, which is
+    significantly faster than making one full pass per tier.
+
     Args:
         json_data (list): List of match documents with Pokemon items and ELO ratings
 
@@ -147,20 +150,6 @@ def create_item_data_elo_threshold(json_data):
     """
     # Get current timestamp for this generation
     current_timestamp = datetime.now().isoformat()
-
-    elo_threshold_stats = {
-        "LEVEL_BALL": {"tier": "LEVEL_BALL", "timestamp": current_timestamp, "items": {}},
-        "NET_BALL": {"tier": "NET_BALL", "timestamp": current_timestamp, "items": {}},
-        "SAFARI_BALL": {"tier": "SAFARI_BALL", "timestamp": current_timestamp, "items": {}},
-        "LOVE_BALL": {"tier": "LOVE_BALL", "timestamp": current_timestamp, "items": {}},
-        "PREMIER_BALL": {"tier": "PREMIER_BALL", "timestamp": current_timestamp, "items": {}},
-        "QUICK_BALL": {"tier": "QUICK_BALL", "timestamp": current_timestamp, "items": {}},
-        "POKE_BALL": {"tier": "POKE_BALL", "timestamp": current_timestamp, "items": {}},
-        "SUPER_BALL": {"tier": "SUPER_BALL", "timestamp": current_timestamp, "items": {}},
-        "ULTRA_BALL": {"tier": "ULTRA_BALL", "timestamp": current_timestamp, "items": {}},
-        "MASTER_BALL": {"tier": "MASTER_BALL", "timestamp": current_timestamp, "items": {}},
-        "BEAST_BALL": {"tier": "BEAST_BALL", "timestamp": current_timestamp, "items": {}},
-    }
 
     thresholds = {
         "BEAST_BALL": 1700,
@@ -176,35 +165,75 @@ def create_item_data_elo_threshold(json_data):
         "LEVEL_BALL": 0,
     }
 
-    for threshold in thresholds:
-        elo_threshold = thresholds[threshold]
-        item_stats = {}
-        for item in ITEM:
-            item_stats[item] = {"pokemons": {},
-                                "rank": 0, "count": 1, "name": item}
-        for match in json_data:
-            nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
-            if match["elo"] >= elo_threshold:
-                for pokemon in match["pokemons"]:
-                    for item in pokemon["items"]:
-                        if item not in ["HARD_STONE", "TINY_MUSHROOM"]:
-                            item_stats[item]["count"] += 1
-                            item_stats[item]["rank"] += 1 + \
-                                (match["rank"] - 1) * 7 / (nbPlayers - 1)
-                            name = pokemon["name"]
-                            if name in item_stats[item]["pokemons"]:
-                                item_stats[item]["pokemons"][name] += 1
-                            else:
-                                item_stats[item]["pokemons"][name] = 1
+    # Sort tiers descending by ELO for early-exit per match
+    sorted_tiers = sorted(thresholds.items(), key=lambda x: x[1], reverse=True)
 
-        for item in item_stats:
-            item_stats[item]["rank"] = round(
-                item_stats[item]["rank"] / item_stats[item]["count"], 2)
-            item_stats[item]["pokemons"] = dict(
-                sorted(item_stats[item]["pokemons"].items(), key=lambda x: x[1], reverse=True))
-            item_stats[item]["pokemons"] = list(
-                item_stats[item]["pokemons"])[:3]
-        elo_threshold_stats[threshold]["items"] = item_stats
+    # Initialise per-tier stats once
+    elo_threshold_stats = {}
+    for tier, _ in sorted_tiers:
+        item_stats = {item: {"pokemons": {}, "rank": 0,
+                             "count": 1, "name": item} for item in ITEM}
+        elo_threshold_stats[tier] = {
+            "tier": tier,
+            "timestamp": current_timestamp,
+            "items": item_stats,
+        }
+
+    # Single pass: update all applicable tiers for each match
+    for match in json_data:
+        elo = match.get("elo", 0)
+        nbPlayers = match.get("nbplayers", 8) or 8
+        if nbPlayers <= 1:
+            nbPlayers = 8
+        rank = match.get("rank", 1)
+        normalised_rank = 1 + (rank - 1) * 7 / (nbPlayers - 1)
+
+        raw_pokemons = match.get("pokemons")
+        if not raw_pokemons:
+            continue
+
+        # Find the first tier this match qualifies for; all subsequent tiers also qualify
+        qualifying_stats = []
+        for i, (tier, elo_threshold) in enumerate(sorted_tiers):
+            if elo >= elo_threshold:
+                qualifying_stats = [
+                    elo_threshold_stats[t]["items"]
+                    for t, _ in sorted_tiers[i:]
+                ]
+                break
+
+        if not qualifying_stats:
+            continue
+
+        for pokemon in raw_pokemons:
+            if not isinstance(pokemon, dict):
+                continue
+            name = pokemon.get("name")
+            items = pokemon.get("items") or []
+            if not isinstance(items, list):
+                items = []
+
+            for item in items:
+                if item in ("HARD_STONE", "TINY_MUSHROOM"):
+                    continue
+                for item_stats in qualifying_stats:
+                    if item not in item_stats:
+                        continue
+                    item_stats[item]["count"] += 1
+                    item_stats[item]["rank"] += normalised_rank
+                    if name in item_stats[item]["pokemons"]:
+                        item_stats[item]["pokemons"][name] += 1
+                    else:
+                        item_stats[item]["pokemons"][name] = 1
+
+    # Post-process: compute averages and trim pokemon lists
+    for tier_data in elo_threshold_stats.values():
+        for item_stat in tier_data["items"].values():
+            item_stat["rank"] = round(
+                item_stat["rank"] / item_stat["count"], 2)
+            item_stat["pokemons"] = dict(
+                sorted(item_stat["pokemons"].items(), key=lambda x: x[1], reverse=True))
+            item_stat["pokemons"] = list(item_stat["pokemons"])[:3]
 
     return elo_threshold_stats.values()
 
@@ -217,6 +246,9 @@ def create_pokemon_data_elo_threshold(json_data):
     including: appearance count, average rank, average item count, and top 3 items.
     Includes timestamp for history tracking.
 
+    Uses a single pass through the data to update all tiers simultaneously, which is
+    significantly faster than making one full pass per tier.
+
     Args:
         json_data (list): List of match documents with Pokemon data and ELO ratings
 
@@ -225,20 +257,6 @@ def create_pokemon_data_elo_threshold(json_data):
     """
     # Get current timestamp for this generation
     current_timestamp = datetime.now().isoformat()
-
-    elo_threshold_stats = {
-        "LEVEL_BALL": {"tier": "LEVEL_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "NET_BALL": {"tier": "NET_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "SAFARI_BALL": {"tier": "SAFARI_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "LOVE_BALL": {"tier": "LOVE_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "PREMIER_BALL": {"tier": "PREMIER_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "QUICK_BALL": {"tier": "QUICK_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "POKE_BALL": {"tier": "POKE_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "SUPER_BALL": {"tier": "SUPER_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "ULTRA_BALL": {"tier": "ULTRA_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "MASTER_BALL": {"tier": "MASTER_BALL", "timestamp": current_timestamp, "pokemons": {}},
-        "BEAST_BALL": {"tier": "BEAST_BALL", "timestamp": current_timestamp, "pokemons": {}},
-    }
 
     thresholds = {
         "BEAST_BALL": 1700,
@@ -254,41 +272,86 @@ def create_pokemon_data_elo_threshold(json_data):
         "LEVEL_BALL": 0,
     }
 
-    for threshold in thresholds:
-        elo_threshold = thresholds[threshold]
-        pokemon_stats = {}
-        for pokemon in LIST_POKEMON:
-            pokemon_stats[pokemon] = {"items": {},
-                                      "rank": 0, "count": 0, "name": pokemon, "item_count": 0}
+    # Sort tiers descending by ELO so we can break early per match
+    sorted_tiers = sorted(thresholds.items(), key=lambda x: x[1], reverse=True)
 
-        for match in json_data:
-            nbPlayers = match["nbplayers"] if "nbplayers" in match else 8
-            if match["elo"] >= elo_threshold:
-                for pokemon in match["pokemons"]:
-                    name = pokemon["name"]
-                    pokemon_stats[name]["rank"] += 1 + \
-                        (match["rank"] - 1) * 7 / (nbPlayers - 1)
-                    pokemon_stats[name]["item_count"] += len(pokemon["items"])
-                    pokemon_stats[name]["count"] += 1
-                    for item in pokemon["items"]:
-                        if item in pokemon_stats[name]["items"]:
-                            pokemon_stats[name]["items"][item] += 1
-                        else:
-                            pokemon_stats[name]["items"][item] = 1
+    # Pre-build valid pokemon name set for O(1) lookups
+    valid_pokemon = set(LIST_POKEMON)
 
-        for pokemon in pokemon_stats:
-            if pokemon_stats[pokemon]["count"] == 0:
-                pokemon_stats[pokemon]["rank"] = 9
+    # Initialise per-tier stats once
+    elo_threshold_stats = {}
+    for tier, _ in sorted_tiers:
+        pokemon_stats = {
+            pokemon: {"items": {}, "rank": 0, "count": 0,
+                      "name": pokemon, "item_count": 0}
+            for pokemon in LIST_POKEMON
+        }
+        elo_threshold_stats[tier] = {
+            "tier": tier,
+            "timestamp": current_timestamp,
+            "pokemons": pokemon_stats,
+        }
+
+    # Single pass: update all applicable tiers for each match
+    for match in json_data:
+        elo = match.get("elo", 0)
+        nbPlayers = match.get("nbplayers", 8) or 8
+        if nbPlayers <= 1:
+            nbPlayers = 8
+        rank = match.get("rank", 1)
+        normalised_rank = 1 + (rank - 1) * 7 / (nbPlayers - 1)
+
+        raw_pokemons = match.get("pokemons")
+        if not raw_pokemons:
+            continue
+
+        # Tiers are sorted descending: once we find the first one elo qualifies for,
+        # all subsequent tiers also qualify (their thresholds are lower).
+        qualifying_stats = []
+        for i, (tier, elo_threshold) in enumerate(sorted_tiers):
+            if elo >= elo_threshold:
+                qualifying_stats = [
+                    elo_threshold_stats[t]["pokemons"]
+                    for t, _ in sorted_tiers[i:]
+                ]
+                break
+
+        if not qualifying_stats:
+            continue
+
+        for pokemon in raw_pokemons:
+            if not isinstance(pokemon, dict):
+                continue
+            name = pokemon.get("name")
+            if not name or name not in valid_pokemon:
+                continue
+            items = pokemon.get("items") or []
+            if not isinstance(items, list):
+                items = []
+            item_count = len(items)
+
+            for pokemon_stats in qualifying_stats:
+                ps = pokemon_stats[name]
+                ps["rank"] += normalised_rank
+                ps["item_count"] += item_count
+                ps["count"] += 1
+                for item in items:
+                    if item in ps["items"]:
+                        ps["items"][item] += 1
+                    else:
+                        ps["items"][item] = 1
+
+    # Post-process: compute averages and trim item lists
+    for tier_data in elo_threshold_stats.values():
+        for ps in tier_data["pokemons"].values():
+            if ps["count"] == 0:
+                ps["rank"] = 9
             else:
-                pokemon_stats[pokemon]["rank"] = round(
-                    pokemon_stats[pokemon]["rank"] / pokemon_stats[pokemon]["count"], 2)
-                pokemon_stats[pokemon]["item_count"] = round(
-                    pokemon_stats[pokemon]["item_count"] / pokemon_stats[pokemon]["count"], 2)
-            pokemon_stats[pokemon]["items"] = dict(sorted(
-                pokemon_stats[pokemon]["items"].items(), key=lambda x: x[1], reverse=True))
-            pokemon_stats[pokemon]["items"] = list(
-                pokemon_stats[pokemon]["items"])[:3]
-        elo_threshold_stats[threshold]["pokemons"] = pokemon_stats
+                ps["rank"] = round(ps["rank"] / ps["count"], 2)
+                ps["item_count"] = round(ps["item_count"] / ps["count"], 2)
+            ps["items"] = dict(
+                sorted(ps["items"].items(), key=lambda x: x[1], reverse=True))
+            ps["items"] = list(ps["items"])[:3]
 
     return elo_threshold_stats.values()
 

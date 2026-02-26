@@ -1002,7 +1002,8 @@ def export_dendrogram_mongodb(df_2d, df_synergies, df_full, n_clusters, linkage_
             # This represents a merged cluster - get any of its original samples
             sample_indices = get_leaves_for_node(leaf, Z, n_samples)
             if sample_indices:
-                leaf_to_cluster.append(int(cluster_labels[sample_indices[0]]))
+                leaf_to_cluster.append(
+                    int(cluster_labels[sample_indices[0]]))
 
     # Convert linkage matrix to list of node objects
     linkage_matrix = []
