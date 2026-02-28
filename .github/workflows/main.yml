@@ -31,4 +31,8 @@ jobs:
           DATABASE_ENV: prod
           DIMENSIONALITY_METHOD: tsne
           CLUSTERING_METHOD: hierarchical
+          # GitHub Actions ubuntu-latest has 7 GB RAM.
+          # scipy linkage() needs n*(n-1)/2 * 8 bytes: at 45k rows that is ~8 GB (OOM).
+          # Cap at 100k documents (~19% qualify for 1100+ elo → ~19k rows, ~1.4 GB matrix).
+          DEBUG_LIMIT: 100000
         run: python -m src.main
