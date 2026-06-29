@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from pymongo import MongoClient
 from datetime import datetime
-from .utils import LIST_POKEMON, ITEM, DB_NAME, SYNERGY_TRIGGERS
+from .utils import LIST_POKEMON, ITEM, UNHOLDABLE_ITEM, DB_NAME, SYNERGY_TRIGGERS
 
 
 def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
@@ -42,7 +42,8 @@ def load_data_mongodb(time_limit, db_name=DB_NAME, limit=None):
         "items": 1,
         "elo": 1,
         "time": 1,
-        "regions": 1
+        "regions": 1,
+        "unholdableItems": 1
     }
 
     cursor = collection.find(
@@ -139,11 +140,14 @@ def create_item_data_elo_threshold(json_data):
     For each item, tracks: appearance count, average rank, and top 3 Pokemon that carry it.
     Includes timestamp for history tracking.
 
+    Processes both Pokemon-held items (from each Pokemon's items list) and match-level
+    unholdable items (from the unholdableItems field, e.g. wands, synergy gems, weather rocks).
+
     Uses a single pass through the data to update all tiers simultaneously, which is
     significantly faster than making one full pass per tier.
 
     Args:
-        json_data (list): List of match documents with Pokemon items and ELO ratings
+        json_data (list): List of match documents with Pokemon items, unholdableItems, and ELO ratings
 
     Returns:
         dict_values: Collection of tier dictionaries, each containing tier name, timestamp, and items statistics
@@ -168,11 +172,12 @@ def create_item_data_elo_threshold(json_data):
     # Sort tiers descending by ELO for early-exit per match
     sorted_tiers = sorted(thresholds.items(), key=lambda x: x[1], reverse=True)
 
-    # Initialise per-tier stats once
+    # Initialise per-tier stats once; include unholdable items alongside holdable ones
+    all_tracked_items = set(ITEM) | set(UNHOLDABLE_ITEM)
     elo_threshold_stats = {}
     for tier, _ in sorted_tiers:
         item_stats = {item: {"pokemons": {}, "rank": 0,
-                             "count": 1, "name": item} for item in ITEM}
+                             "count": 1, "name": item} for item in all_tracked_items}
         elo_threshold_stats[tier] = {
             "tier": tier,
             "timestamp": current_timestamp,
@@ -225,6 +230,14 @@ def create_item_data_elo_threshold(json_data):
                         item_stats[item]["pokemons"][name] += 1
                     else:
                         item_stats[item]["pokemons"][name] = 1
+
+        # Process match-level unholdable items (not held by any specific Pokemon)
+        for item in match.get("unholdableItems") or []:
+            for tier_item_stats in qualifying_stats:
+                if item not in tier_item_stats:
+                    continue
+                tier_item_stats[item]["count"] += 1
+                tier_item_stats[item]["rank"] += normalised_rank
 
     # Post-process: compute averages and trim pokemon lists
     for tier_data in elo_threshold_stats.values():
