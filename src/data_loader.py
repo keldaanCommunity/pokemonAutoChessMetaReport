@@ -185,6 +185,7 @@ def create_item_data_elo_threshold(json_data):
         }
 
     # Single pass: update all applicable tiers for each match
+    _untracked_warned: set = set()
     for match in json_data:
         elo = match.get("elo", 0)
         nbPlayers = match.get("nbplayers", 8) or 8
@@ -235,6 +236,9 @@ def create_item_data_elo_threshold(json_data):
         for item in match.get("unholdableItems") or []:
             for tier_item_stats in qualifying_stats:
                 if item not in tier_item_stats:
+                    if item not in _untracked_warned:
+                        print(f"Warning: unholdable item '{item}' not in tracked items; skipping. Update UNHOLDABLE_ITEM fallback list.")
+                        _untracked_warned.add(item)
                     continue
                 tier_item_stats[item]["count"] += 1
                 tier_item_stats[item]["rank"] += normalised_rank

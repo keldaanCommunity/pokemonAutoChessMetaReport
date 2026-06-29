@@ -142,7 +142,8 @@ def load_pokemon_constants():
         UNHOLDABLE_ITEM = unholdable_items.json()
         if not isinstance(UNHOLDABLE_ITEM, list):
             UNHOLDABLE_ITEM = list(UNHOLDABLE_ITEM.values()) if isinstance(UNHOLDABLE_ITEM, dict) else _UNHOLDABLE_ITEMS_FALLBACK
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Could not fetch unholdable items from API: {e}. Using fallback list.")
         UNHOLDABLE_ITEM = _UNHOLDABLE_ITEMS_FALLBACK
 
     # Get list of types for each pokemon
