@@ -111,6 +111,41 @@ def load_pokemon_constants():
         print(f"Warning: Could not fetch items from API: {e}")
         ITEM = {}
 
+    # Fallback list matching UnholdableItemsToSaveForStats from pokemonAutoChess/app/types/enum/Item.ts
+    _UNHOLDABLE_ITEMS_FALLBACK = [
+        # Wands
+        "BLAST_WAND", "HP_SWAP_WAND", "SPIRIT_WAND", "LONG_WAND", "CONFUSE_WAND",
+        "PETRIFY_WAND", "SLOW_WAND", "SLUMBER_WAND", "GUIDING_WAND", "SURROUND_WAND",
+        "POUNCE_WAND", "TWO_EDGED_WAND", "WARP_WAND", "SWITCHER_WAND",
+        "WHIRLWIND_WAND", "TUNNEL_WAND",
+        # Synergy Gems
+        "NORMAL_GEM", "GRASS_GEM", "FIRE_GEM", "WATER_GEM", "ELECTRIC_GEM",
+        "FIGHTING_GEM", "PSYCHIC_GEM", "DARK_GEM", "STEEL_GEM", "GROUND_GEM",
+        "POISON_GEM", "DRAGON_GEM", "FIELD_GEM", "MONSTER_GEM", "HUMAN_GEM",
+        "AQUATIC_GEM", "BUG_GEM", "FLYING_GEM", "FLORA_GEM", "ROCK_GEM",
+        "GHOST_GEM", "FAIRY_GEM", "ICE_GEM", "FOSSIL_GEM", "SOUND_GEM",
+        "ARTIFICIAL_GEM", "LIGHT_GEM", "WILD_GEM", "AMORPHOUS_GEM", "GOURMET_GEM",
+        # Seven Treasures
+        "AQUA_MONICA", "FIERY_DRUM", "GRASS_CORNET", "ICY_FLUTE",
+        "ROCK_HORN", "SKY_MELODICA", "TERRA_CYMBAL",
+        # Weather Rocks
+        "SUN_STONE", "HEAT_ROCK", "DAMP_ROCK", "ICY_ROCK", "SMOOTH_ROCK",
+        "BLACK_AUGURITE", "FLOAT_STONE", "ELECTRIC_QUARTZ", "MIST_STONE",
+        "BLOOD_STONE", "SMELLY_CLAY", "ODD_KEYSTONE",
+        # Gimmighoul Coin
+        "GIMMIGHOUL_COIN",
+    ]
+
+    try:
+        unholdable_items = requests.get('https://pokemon-auto-chess.com/unholdable-items', timeout=15)
+        unholdable_items.raise_for_status()
+        UNHOLDABLE_ITEM = unholdable_items.json()
+        if not isinstance(UNHOLDABLE_ITEM, list):
+            UNHOLDABLE_ITEM = list(UNHOLDABLE_ITEM.values()) if isinstance(UNHOLDABLE_ITEM, dict) else _UNHOLDABLE_ITEMS_FALLBACK
+    except Exception as e:
+        print(f"Warning: Could not fetch unholdable items from API: {e}. Using fallback list.")
+        UNHOLDABLE_ITEM = _UNHOLDABLE_ITEMS_FALLBACK
+
     # Get list of types for each pokemon
     POKEMON_TYPE = {}
     for pkm in LIST_POKEMON:
@@ -129,6 +164,7 @@ def load_pokemon_constants():
         'TYPE_POKEMON': TYPE_POKEMON,
         'TYPE_TRIGGER': TYPE_TRIGGER,
         'ITEM': ITEM,
+        'UNHOLDABLE_ITEM': UNHOLDABLE_ITEM,
         'POKEMON_TYPE': POKEMON_TYPE,
         'LIST_TYPE': LIST_TYPE,
     }
@@ -140,6 +176,7 @@ LIST_POKEMON = CONSTANTS['LIST_POKEMON']
 TYPE_POKEMON = CONSTANTS['TYPE_POKEMON']
 TYPE_TRIGGER = CONSTANTS['TYPE_TRIGGER']
 ITEM = CONSTANTS['ITEM']
+UNHOLDABLE_ITEM = CONSTANTS['UNHOLDABLE_ITEM']
 POKEMON_TYPE = CONSTANTS['POKEMON_TYPE']
 LIST_TYPE = CONSTANTS['LIST_TYPE']
 
